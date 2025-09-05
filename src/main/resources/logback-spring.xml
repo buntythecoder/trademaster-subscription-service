@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- MANDATORY: Structured JSON Logging Configuration per TradeMaster Standards -->
+<configuration>
+    
+    <!-- Standard console appender for local development -->
+    <springProfile name="!prod">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [%X{correlationId}] - %msg%n</pattern>
+            </encoder>
+        </appender>
+        
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+    
+    <!-- MANDATORY: Structured JSON Logging for Production -->
+    <springProfile name="prod">
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <timeZone>UTC</timeZone>
+                        <fieldName>@timestamp</fieldName>
+                    </timestamp>
+                    <version/>
+                    <logLevel>
+                        <fieldName>level</fieldName>
+                    </logLevel>
+                    <message>
+                        <fieldName>message</fieldName>
+                    </message>
+                    <mdc>
+                        <fieldName>mdc</fieldName>
+                    </mdc>
+                    <arguments>
+                        <fieldName>arguments</fieldName>
+                    </arguments>
+                    <stackTrace>
+                        <fieldName>stack_trace</fieldName>
+                    </stackTrace>
+                    <pattern>
+                        <pattern>
+                            {
+                                "service": "subscription-service",
+                                "application": "trademaster",
+                                "environment": "${spring.profiles.active:-unknown}",
+                                "host": "${HOSTNAME:-unknown}",
+                                "thread": "%thread",
+                                "logger": "%logger"
+                            }
+                        </pattern>
+                    </pattern>
+                </providers>
+            </encoder>
+        </appender>
+        
+        <!-- MANDATORY: Security Audit Logs -->
+        <appender name="SECURITY_AUDIT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>logs/security-audit.json</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>logs/security-audit.%d{yyyy-MM-dd}.%i.json</fileNamePattern>
+                <maxFileSize>100MB</maxFileSize>
+                <maxHistory>90</maxHistory>
+                <totalSizeCap>10GB</totalSizeCap>
+            </rollingPolicy>
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <timeZone>UTC</timeZone>
+                        <fieldName>@timestamp</fieldName>
+                    </timestamp>
+                    <logLevel>
+                        <fieldName>level</fieldName>
+                    </logLevel>
+                    <message>
+                        <fieldName>message</fieldName>
+                    </message>
+                    <mdc>
+                        <fieldName>context</fieldName>
+                    </mdc>
+                    <arguments>
+                        <fieldName>data</fieldName>
+                    </arguments>
+                    <pattern>
+                        <pattern>
+                            {
+                                "service": "subscription-service",
+                                "application": "trademaster",
+                                "log_type": "security_audit",
+                                "environment": "${spring.profiles.active:-unknown}",
+                                "host": "${HOSTNAME:-unknown}"
+                            }
+                        </pattern>
+                    </pattern>
+                </providers>
+            </encoder>
+        </appender>
+        
+        <!-- MANDATORY: Business Audit Logs for Compliance -->
+        <appender name="BUSINESS_AUDIT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>logs/business-audit.json</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>logs/business-audit.%d{yyyy-MM-dd}.%i.json</fileNamePattern>
+                <maxFileSize>100MB</maxFileSize>
+                <maxHistory>90</maxHistory>
+                <totalSizeCap>20GB</totalSizeCap>
+            </rollingPolicy>
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <timeZone>UTC</timeZone>
+                        <fieldName>@timestamp</fieldName>
+                    </timestamp>
+                    <logLevel>
+                        <fieldName>level</fieldName>
+                    </logLevel>
+                    <message>
+                        <fieldName>message</fieldName>
+                    </message>
+                    <mdc>
+                        <fieldName>context</fieldName>
+                    </mdc>
+                    <arguments>
+                        <fieldName>data</fieldName>
+                    </arguments>
+                    <pattern>
+                        <pattern>
+                            {
+                                "service": "subscription-service",
+                                "application": "trademaster",
+                                "log_type": "business_audit",
+                                "environment": "${spring.profiles.active:-unknown}",
+                                "host": "${HOSTNAME:-unknown}"
+                            }
+                        </pattern>
+                    </pattern>
+                </providers>
+            </encoder>
+        </appender>
+        
+        <!-- Performance Logs -->
+        <appender name="PERFORMANCE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>logs/performance.json</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>logs/performance.%d{yyyy-MM-dd}.%i.json</fileNamePattern>
+                <maxFileSize>100MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>5GB</totalSizeCap>
+            </rollingPolicy>
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <timeZone>UTC</timeZone>
+                        <fieldName>@timestamp</fieldName>
+                    </timestamp>
+                    <message>
+                        <fieldName>message</fieldName>
+                    </message>
+                    <mdc>
+                        <fieldName>context</fieldName>
+                    </mdc>
+                    <arguments>
+                        <fieldName>metrics</fieldName>
+                    </arguments>
+                    <pattern>
+                        <pattern>
+                            {
+                                "service": "subscription-service",
+                                "application": "trademaster",
+                                "log_type": "performance",
+                                "environment": "${spring.profiles.active:-unknown}",
+                                "host": "${HOSTNAME:-unknown}"
+                            }
+                        </pattern>
+                    </pattern>
+                </providers>
+            </encoder>
+        </appender>
+        
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </root>
+        
+        <!-- Security Logger -->
+        <logger name="SECURITY_AUDIT" level="INFO" additivity="false">
+            <appender-ref ref="SECURITY_AUDIT"/>
+        </logger>
+        
+        <!-- Business Audit Logger -->
+        <logger name="BUSINESS_AUDIT" level="INFO" additivity="false">
+            <appender-ref ref="BUSINESS_AUDIT"/>
+        </logger>
+        
+        <!-- Performance Logger -->
+        <logger name="PERFORMANCE" level="INFO" additivity="false">
+            <appender-ref ref="PERFORMANCE"/>
+        </logger>
+    </springProfile>
+    
+    <!-- Async Appenders for Virtual Thread Compatibility -->
+    <appender name="ASYNC_JSON" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="JSON_CONSOLE"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>20</discardingThreshold>
+        <maxFlushTime>5000</maxFlushTime>
+        <neverBlock>true</neverBlock>
+    </appender>
+    
+    <!-- Logger Configurations -->
+    <logger name="com.trademaster.subscription" level="INFO"/>
+    <logger name="org.springframework.security" level="WARN"/>
+    <logger name="org.springframework.web" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.flywaydb" level="INFO"/>
+    <logger name="org.springframework.kafka" level="INFO"/>
+    <logger name="io.micrometer" level="WARN"/>
+    
+    <!-- MDC Configuration for Virtual Threads -->
+    <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+        <resetJUL>true</resetJUL>
+    </contextListener>
+</configuration>

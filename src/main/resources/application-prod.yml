@@ -1,0 +1,449 @@
+# Production Configuration for TradeMaster Subscription Service
+# MANDATORY: Production-Ready Settings per TradeMaster Standards
+# Author: TradeMaster Development Team
+# Version: 2.0.0
+
+server:
+  port: ${SERVER_PORT:8086}
+  servlet:
+    context-path: /api/v1
+  # Production Server Optimization
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+    max-connections: 8192
+    accept-count: 100
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024
+
+spring:
+  application:
+    name: subscription-service
+  
+  # MANDATORY: Virtual Threads Configuration per TradeMaster Standards
+  threads:
+    virtual:
+      enabled: true
+  
+  # Production Database Configuration
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20  # Conservative for production
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+      pool-name: SubscriptionServiceCP
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Never auto-create in production
+    show-sql: false       # Never log SQL in production
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        jdbc:
+          batch_versioned_data: true
+        connection:
+          handling_mode: delayed_acquisition_and_release_after_transaction
+  
+  # Flyway Configuration
+  flyway:
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    validate-on-migrate: true
+    out-of-order: false
+  
+  # Production Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl.enabled: ${REDIS_SSL_ENABLED:true}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: -1ms
+  
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000  # 5 minutes for production
+  
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI}
+          jwk-set-uri: ${JWT_JWK_SET_URI}
+  
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 5
+      batch-size: 16384
+      linger-ms: 10
+      buffer-memory: 33554432
+      compression-type: lz4
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:subscription-service-prod}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      max-poll-records: 500
+      fetch-min-size: 1
+      properties:
+        spring.json.trusted.packages: "com.trademaster.subscription.events"
+
+# Production Subscription Configuration
+subscription:
+  # Production Tier Pricing (in cents)
+  tiers:
+    free:
+      name: "Free"
+      monthly-price: 0
+      features:
+        - "Basic market data"
+        - "5 watchlists"
+        - "Basic charts"
+      limits:
+        max-watchlists: 5
+        max-alerts: 10
+        api-calls-per-day: 100
+    
+    pro:
+      name: "Pro"
+      monthly-price: 2999      # $29.99
+      quarterly-price: 8099    # $80.99 (10% discount)
+      annual-price: 28999      # $289.99 (19% discount)
+      features:
+        - "Real-time market data"
+        - "Unlimited watchlists"
+        - "Advanced charts"
+        - "Portfolio analytics"
+        - "Basic alerts"
+      limits:
+        max-watchlists: -1
+        max-alerts: 100
+        api-calls-per-day: 10000
+    
+    ai-premium:
+      name: "AI Premium"
+      monthly-price: 9999      # $99.99
+      quarterly-price: 26999   # $269.99 (10% discount)
+      annual-price: 99999      # $999.99 (17% discount)
+      features:
+        - "All Pro features"
+        - "Behavioral AI insights"
+        - "Trading psychology analytics"
+        - "Emotion tracking"
+        - "AI coaching"
+      limits:
+        max-watchlists: -1
+        max-alerts: 500
+        api-calls-per-day: 50000
+        ai-analysis-per-month: 1000
+    
+    institutional:
+      name: "Institutional"
+      monthly-price: 99999     # $999.99 base price
+      custom-pricing: true
+      features:
+        - "All AI Premium features"
+        - "Multi-user accounts"
+        - "Custom integrations"
+        - "Priority support"
+        - "Advanced analytics"
+        - "Risk management tools"
+      limits:
+        max-watchlists: -1
+        max-alerts: -1
+        api-calls-per-day: -1
+        ai-analysis-per-month: -1
+        max-sub-accounts: 1000
+
+  # Production Billing Configuration
+  billing:
+    trial-period-days: 7
+    grace-period-days: 3
+    dunning-retry-count: 3
+    dunning-retry-interval: 24  # hours
+  
+  # Usage Tracking
+  usage:
+    sync-interval: 300  # 5 minutes
+    aggregation-window: 3600  # 1 hour
+    retention-days: 90
+
+# Production Rate Limiting
+rate-limiting:
+  subscription:
+    capacity: 100
+    tokens: 20
+    refill-period: 60
+
+# MANDATORY: Production Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      subscription-service:
+        failure-rate-threshold: 50.0
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        wait-duration-in-open-state: 60s
+        permitted-number-of-calls-in-half-open-state: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+        
+      payment-service:
+        failure-rate-threshold: 30.0
+        sliding-window-size: 25
+        minimum-number-of-calls: 15
+        wait-duration-in-open-state: 120s
+        
+      notification-service:
+        failure-rate-threshold: 40.0
+        sliding-window-size: 30
+        minimum-number-of-calls: 20
+        wait-duration-in-open-state: 90s
+        
+      database-service:
+        failure-rate-threshold: 20.0
+        sliding-window-size: 50
+        minimum-number-of-calls: 10
+        wait-duration-in-open-state: 300s
+        
+  retry:
+    instances:
+      subscription-service:
+        max-attempts: 3
+        wait-duration: 2s
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          
+      payment-service:
+        max-attempts: 2
+        wait-duration: 3s
+        exponential-backoff-multiplier: 2
+        
+      notification-service:
+        max-attempts: 4
+        wait-duration: 1s
+        
+      database-service:
+        max-attempts: 5
+        wait-duration: 500ms
+        
+  timelimiter:
+    instances:
+      subscription-service:
+        timeout-duration: 30s
+        cancel-running-future: true
+        
+      payment-service:
+        timeout-duration: 45s
+        cancel-running-future: true
+        
+      notification-service:
+        timeout-duration: 15s
+        cancel-running-future: true
+        
+      database-service:
+        timeout-duration: 10s
+        cancel-running-future: true
+
+# MANDATORY: Production Monitoring Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      roles: ADMIN,ACTUATOR
+      probes:
+        enabled: true
+    info:
+      enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 30s
+        descriptions: true
+        pushgateway:
+          enabled: ${PROMETHEUS_PUSHGATEWAY_ENABLED:false}
+          base-url: ${PROMETHEUS_PUSHGATEWAY_URL:http://localhost:9091}
+    tags:
+      application: trademaster
+      service: subscription-service
+      version: 2.0.0
+      environment: production
+      region: ${AWS_REGION:us-east-1}
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true
+        "[subscription.creation.duration]": true
+        "[payment.processing.duration]": true
+        "[database.query.duration]": true
+      percentiles:
+        http.server.requests: 0.5, 0.75, 0.95, 0.99, 0.999
+        subscription.creation.duration: 0.5, 0.75, 0.95, 0.99
+        payment.processing.duration: 0.5, 0.75, 0.95, 0.99
+        database.query.duration: 0.5, 0.75, 0.95, 0.99
+        external.service.call.duration: 0.5, 0.75, 0.95, 0.99
+      slo:
+        http.server.requests: 50ms,100ms,200ms,500ms,1s
+        subscription.creation.duration: 50ms,100ms,500ms,1s,3s
+        payment.processing.duration: 100ms,500ms,1s,5s,10s
+        database.query.duration: 10ms,50ms,100ms,500ms,1s
+        external.service.call.duration: 100ms,500ms,1s,3s,5s
+  info:
+    env:
+      enabled: true
+    git:
+      mode: full
+    build:
+      enabled: true
+    java:
+      enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
+    diskspace:
+      enabled: true
+      threshold: 10GB
+    redis:
+      enabled: true
+    db:
+      enabled: true
+
+# Production Application Configuration
+app:
+  version: "2.0.0"
+  
+  # External Services Configuration
+  services:
+    payment-gateway:
+      url: ${PAYMENT_GATEWAY_URL}
+      api-key: ${PAYMENT_GATEWAY_API_KEY}
+      timeout: 30s
+      retry-attempts: 3
+    
+    user-profile-service:
+      url: ${USER_PROFILE_SERVICE_URL}
+      timeout: 15s
+      retry-attempts: 2
+    
+    notification-service:
+      url: ${NOTIFICATION_SERVICE_URL}
+      timeout: 10s
+      retry-attempts: 3
+  
+  # Kafka Topics Configuration
+  kafka:
+    topics:
+      subscription-events: ${KAFKA_TOPIC_SUBSCRIPTION_EVENTS:subscription-events-prod}
+      usage-events: ${KAFKA_TOPIC_USAGE_EVENTS:usage-events-prod}
+      billing-events: ${KAFKA_TOPIC_BILLING_EVENTS:billing-events-prod}
+      notification-events: ${KAFKA_TOPIC_NOTIFICATION_EVENTS:notification-events-prod}
+      
+  # Scheduler Configuration
+  scheduler:
+    billing:
+      enabled: true
+      cron: "0 0 2 * * ?" # 2 AM daily
+    trial-expiration:
+      enabled: true
+      cron: "0 30 1 * * ?" # 1:30 AM daily
+    usage-reset:
+      enabled: true
+      cron: "0 0 0 1 * ?" # First day of month at midnight
+    cleanup:
+      enabled: true
+      cron: "0 0 3 * * ?" # 3 AM daily
+      
+  # Performance Configuration
+  performance:
+    monitoring:
+      enabled: true
+    caching:
+      enabled: true
+      ttl: 300 # 5 minutes
+
+# Production Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.trademaster.subscription: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.apache.kafka: WARN
+    io.micrometer: INFO
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] %logger{36} - %msg%n"
+  file:
+    name: /var/log/trademaster/subscription-service.log
+    max-size: 100MB
+    max-history: 30
+    total-size-cap: 3GB
+
+# Production Custom Properties
+app:
+  subscription:
+    webhook-base-url: ${WEBHOOK_BASE_URL}/api/v1/webhooks
+    payment-service-url: ${PAYMENT_SERVICE_URL}/api/v1
+  
+  notification:
+    email:
+      enabled: true
+      template-path: classpath:templates/email/
+    sms:
+      enabled: ${SMS_NOTIFICATIONS_ENABLED:true}
+  
+  audit:
+    enabled: true
+    retention-days: 2555  # 7 years for financial compliance
+  
+  security:
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS}
+      allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+      allowed-headers: "*"
+      allow-credentials: true
+      max-age: 3600

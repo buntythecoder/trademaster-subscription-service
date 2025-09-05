@@ -1,0 +1,250 @@
+# TradeMaster Subscription Service - Git Ignore Configuration
+# ============================================================
+
+# Java compiled classes and archives
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+replay_pid*
+
+# Gradle build system
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+gradle-app.setting
+!gradle-wrapper.properties
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# Eclipse IDE
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# Operating System
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tmp
+*.temp
+*~
+
+# Spring Boot
+spring.log
+spring.*.log
+application-local.properties
+application-local.yml
+application-secret.properties
+application-secret.yml
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.h2.db
+*.mv.db
+*.trace.db
+*.lock.db
+
+# Log files
+logs/
+*.log
+*.log.*
+*.out
+application.log
+error.log
+access.log
+
+# Security & Credentials (NEVER COMMIT)
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+*.truststore
+secrets/
+secrets.properties
+.env
+.env.local
+.env.*.local
+*secret*
+*password*
+*credential*
+*token*
+jwt.key
+private.key
+
+# Docker
+.docker/
+docker-compose.override.yml
+.dockerignore
+
+# Kubernetes secrets
+*secret*.yml
+*secret*.yaml
+values-secret.yml
+values-secret.yaml
+
+# Testing
+junit.xml
+test-results/
+test-output/
+target/surefire-reports/
+target/failsafe-reports/
+coverage/
+*.gcov
+*.lcov
+jacoco.exec
+
+# JaCoCo Code Coverage
+jacoco-sessions.html
+jacoco.xml
+coverage.xml
+
+# Application specific
+application-dev-local.yml
+application-test-local.yml
+subscription-service-local.properties
+
+# Maven (if used)
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+# Temporary files
+tmp/
+temp/
+*.swp
+*.swo
+*~
+.#*
+\#*#
+.*.swp
+.*.swo
+
+# Performance and profiling
+*.hprof
+*.heap
+jfr/
+*.jfr
+flight*.jfr
+
+# Cache directories
+.cache/
+.npm/
+.yarn/
+node_modules/
+
+# Local environment files
+.local/
+local/
+dev-local/
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Documentation temp files
+*.tmp.md
+*.draft.md
+*-temp.md
+*-backup.md
+status-*.md
+audit-*.md
+temp-*.md
+
+# JVM crash logs
+hs_err_pid*.log
+
+# Virtual machine crash logs
+core.*
+
+# BlueJ files
+*.ctxt
+
+# Package Files
+*.tgz
+*.dmg
+
+# JetBrains
+atlassian-ide-plugin.xml
+
+# SonarQube
+.sonar/
+.scannerwork/
+
+# Flyway
+flyway.conf
+
+# Redis dump
+dump.rdb
+
+# Application runtime
+pid.file
+application.pid
+
+# Local SSL certificates for development
+*.crt
+*.cert
+localhost.key
+localhost.crt
+
+# Monitoring and metrics temp files
+metrics-*.json
+prometheus-*.txt
+
+# Circuit breaker state files
+circuit-breaker-*.state
+
+# Local configuration overrides
+*-override.yml
+*-override.yaml
+*-override.properties
+
+# Development scripts
+run-local.sh
+start-dev.sh
+debug.sh
