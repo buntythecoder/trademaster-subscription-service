@@ -7,20 +7,21 @@ spring:
   application:
     name: subscription-service
   
-  # Spring Cloud Config Server Integration
+  # Consul Integration
   cloud:
-    config:
-      uri: ${CONFIG_SERVER_URI:http://localhost:8888}
-      profile: ${SPRING_PROFILES_ACTIVE:development}
-      label: main
-      retry:
-        initial-interval: 2000
-        max-attempts: 10
-        max-interval: 10000
-        multiplier: 1.2
-      fail-fast: true
-      request-connect-timeout: 10000
-      request-read-timeout: 60000
+    consul:
+      host: ${CONSUL_HOST:consul}
+      port: ${CONSUL_PORT:8500}
+      config:
+        enabled: true
+        format: YAML
+        default-context: application
+        profile-separator: ','
+        data-key: data
+        prefix: config
+        watch:
+          enabled: true
+          delay: 1000
   
   # Security for Config Server (if enabled)
   security:
@@ -28,46 +29,36 @@ spring:
       name: ${CONFIG_SERVER_USERNAME:config-user}
       password: ${CONFIG_SERVER_PASSWORD:config-password}
 
-# Eureka Service Discovery Configuration
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
-    register-with-eureka: true
-    fetch-registry: true
-    registry-fetch-interval-seconds: 30
-    instance-info-replication-interval-seconds: 30
-    initial-instance-info-replication-interval-seconds: 40
-    healthcheck:
-      enabled: true
-    
-  instance:
-    hostname: ${HOSTNAME:localhost}
+# Consul Service Discovery Configuration - MANDATORY for TradeMaster Infrastructure
+consul:
+  enabled: ${CONSUL_ENABLED:true}
+  host: ${CONSUL_HOST:consul}
+  port: ${CONSUL_PORT:8500}
+  datacenter: ${CONSUL_DATACENTER:trademaster-dc}
+
+  discovery:
+    enabled: true
+    register: true
+    deregister: true
     prefer-ip-address: true
-    ip-address: ${SERVER_IP:127.0.0.1}
-    instance-id: ${spring.application.name}:${spring.profiles.active:development}:${server.port:8081}
-    
-    # Health Check Configuration
-    health-check-url-path: /actuator/health
-    status-page-url-path: /actuator/info
-    home-page-url-path: /actuator
-    
-    # Metadata for Service Discovery
-    metadata-map:
-      version: ${BUILD_VERSION:1.0.0}
-      build-time: ${BUILD_TIME:unknown}
-      git-commit: ${GIT_COMMIT:unknown}
-      service-type: subscription
-      tier: backend
-      
-    # Lease Configuration
-    lease-renewal-interval-in-seconds: 30
-    lease-expiration-duration-in-seconds: 90
-    
-    # Non-secure port configuration
-    non-secure-port: ${server.port:8081}
-    non-secure-port-enabled: true
-    secure-port-enabled: false
+    health-check-path: /actuator/health
+    health-check-interval: 10s
+    health-check-timeout: 5s
+    health-check-critical-timeout: 30s
+    fail-fast: false
+    query-passing: true
+    catalog-services-watch-delay: 1000
+    catalog-services-watch-timeout: 2
+
+  config:
+    enabled: true
+    format: YAML
+    default-context: application
+    profile-separator: ','
+    data-key: data
+    watch:
+      enabled: true
+      delay: 1000
 
 # Logging Configuration for Bootstrap
 logging:

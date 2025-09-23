@@ -1,5 +1,6 @@
 package com.trademaster.subscription.config;
 
+import com.trademaster.subscription.security.ServiceApiKeyFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,9 +10,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+// JWT imports removed - using API key authentication
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -19,19 +20,28 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 /**
- * Security Configuration
- * 
- * Configures JWT-based authentication and authorization for the subscription service.
- * Implements TradeMaster security standards with proper CORS and endpoint protection.
- * 
- * @author TradeMaster Development Team
+ * Zero Trust Security Configuration
+ *
+ * MANDATORY implementation following TradeMaster Golden Specification.
+ * Implements tiered security model with JWT authentication for external APIs
+ * and Kong API key authentication for internal service-to-service communication.
+ *
+ * Security Layers:
+ * - External APIs: Full security stack with JWT authentication
+ * - Internal APIs: Kong API key validation via ServiceApiKeyFilter
+ * - Health checks: Public access for monitoring
+ *
+ * @author TradeMaster Engineering Team
  * @version 1.0.0
+ * @since 2025-01-09
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final ServiceApiKeyFilter serviceApiKeyFilter;
 
     /**
      * Configure security filter chain with JWT authentication
@@ -49,46 +59,52 @@ public class SecurityConfig {
             .sessionManagement(session -> 
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             
-            // Configure OAuth2 Resource Server with JWT
-            .oauth2ResourceServer(oauth2 -> 
-                oauth2.jwt(jwt -> 
-                    jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+            // OAuth2 Resource Server with JWT (only for external endpoints)
+            // Internal endpoints use API key authentication via ServiceApiKeyFilter
             
-            // Configure authorization rules
+            // Configure authorization rules following Zero Trust model
             .authorizeHttpRequests(authz -> authz
-                // Public endpoints
-                .requestMatchers(HttpMethod.GET, 
+                // Public endpoints for health monitoring
+                .requestMatchers(HttpMethod.GET,
                     "/actuator/health",
-                    "/actuator/info",
+                    "/api/v2/health",
+                    "/api/v2/ping"
+                ).permitAll()
+
+                // Public endpoints for API documentation
+                .requestMatchers(
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html"
                 ).permitAll()
-                
+
+                // Internal API endpoints (Kong API key authentication via ServiceApiKeyFilter)
+                .requestMatchers("/api/internal/**").hasRole("SERVICE")
+
+                // External API endpoints with JWT authentication
                 // Admin endpoints - require admin role
                 .requestMatchers(HttpMethod.POST, "/api/v1/usage/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/v1/subscriptions/status/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/v1/subscriptions/*/suspend").hasRole("ADMIN")
-                
+                .requestMatchers("/actuator/prometheus").hasRole("ADMIN")
+                .requestMatchers("/actuator/**").hasRole("ADMIN")
+
                 // User endpoints - require authenticated user
                 .requestMatchers(HttpMethod.GET, "/api/v1/subscriptions/users/**").hasRole("USER")
                 .requestMatchers(HttpMethod.POST, "/api/v1/subscriptions").hasRole("USER")
                 .requestMatchers(HttpMethod.POST, "/api/v1/subscriptions/*/upgrade").hasRole("USER")
                 .requestMatchers(HttpMethod.POST, "/api/v1/subscriptions/*/cancel").hasRole("USER")
-                
-                // Usage endpoints - require authenticated user
                 .requestMatchers("/api/v1/usage/**").hasRole("USER")
-                
-                // Service-to-service endpoints - require service role
+
+                // Service-to-service endpoints via external API (require service role)
                 .requestMatchers(HttpMethod.POST, "/api/v1/subscriptions/*/activate").hasRole("SERVICE")
-                
-                // Metrics endpoint - require admin role  
-                .requestMatchers("/actuator/prometheus").hasRole("ADMIN")
-                .requestMatchers("/actuator/**").hasRole("ADMIN")
-                
-                // All other endpoints require authentication
-                .anyRequest().authenticated()
+
+                // Deny all other requests by default (Zero Trust)
+                .anyRequest().denyAll()
             )
+
+            // Add ServiceApiKeyFilter before JWT filter
+            .addFilterBefore(serviceApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
             
             // Configure exception handling
             .exceptionHandling(exceptions -> exceptions
@@ -121,21 +137,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Configure JWT authentication converter
-     */
-    @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        authoritiesConverter.setAuthorityPrefix("ROLE_");
-        authoritiesConverter.setAuthoritiesClaimName("roles");
-
-        JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
-        authenticationConverter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
-        authenticationConverter.setPrincipalClaimName("sub");
-
-        return authenticationConverter;
-    }
+    // JWT authentication converter removed - using API key authentication for internal endpoints
 
     /**
      * Configure CORS

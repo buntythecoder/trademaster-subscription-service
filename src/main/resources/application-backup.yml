@@ -1,0 +1,497 @@
+server:
+  port: 8085
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: subscription-service
+
+  # Consul Configuration - Optional for development
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    consul:
+      config:
+        enabled: false  # Disable for local development without Consul
+        import-check:
+          enabled: false
+      discovery:
+        enabled: false  # Disable for local development without Consul
+
+  # MANDATORY: Virtual Threads Configuration per TradeMaster Standards
+  threads:
+    virtual:
+      enabled: true
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/trademaster_subscription
+    username: trademaster_user
+    password: trademaster_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 50  # Optimized for Virtual Threads
+      minimum-idle: 10       # Standards compliant
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        order_inserts: true
+        order_updates: true
+        jdbc:
+          batch_size: 25
+          batch_versioned_data: true
+        connection:
+          handling_mode: delayed_acquisition_and_release_after_transaction  # Virtual Threads optimization
+  
+  # Flyway Configuration
+  flyway:
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+  
+  # Redis Configuration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000  # 10 minutes default TTL
+  
+  # Consul Service Discovery Configuration
+  cloud:
+    consul:
+      enabled: true
+      host: ${CONSUL_HOST:consul}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        register: true
+        deregister: true
+        prefer-ip-address: true
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+        health-check-timeout: 5s
+        health-check-critical-timeout: 30s
+        fail-fast: false
+        query-passing: true
+        catalog-services-watch-delay: 1000
+        catalog-services-watch-timeout: 2
+      config:
+        enabled: true
+        format: YAML
+        default-context: application
+        profile-separator: ','
+        data-key: data
+        watch:
+          enabled: true
+          delay: 1000
+
+  # Security Configuration (merged below to avoid duplicates)
+  
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      batch-size: 16384
+      linger-ms: 5
+      buffer-memory: 33554432
+    consumer:
+      group-id: subscription-service
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      max-poll-records: 500
+      fetch-min-size: 1
+      properties:
+        spring.json.trusted.packages: "com.trademaster.subscription.events"
+        
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8080}
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8080/.well-known/jwks.json}
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    display-request-duration: true
+    show-extensions: true
+    show-common-extensions: true
+    default-models-expand-depth: 3
+    default-model-expand-depth: 3
+  packages-to-scan: com.trademaster.subscription.controller
+  show-actuator: false
+
+# Subscription Management Configuration
+subscription:
+  # Tier Configuration
+  tiers:
+    free:
+      name: "Free"
+      monthly-price: 0
+      features:
+        - "Basic market data"
+        - "5 watchlists"
+        - "Basic charts"
+      limits:
+        max-watchlists: 5
+        max-alerts: 10
+        api-calls-per-day: 100
+    
+    pro:
+      name: "Pro"
+      monthly-price: 999
+      quarterly-price: 2799  # 6% discount
+      annual-price: 9999     # 17% discount
+      features:
+        - "Real-time market data"
+        - "Unlimited watchlists"
+        - "Advanced charts"
+        - "Portfolio analytics"
+        - "Basic alerts"
+      limits:
+        max-watchlists: -1  # Unlimited
+        max-alerts: 100
+        api-calls-per-day: 10000
+    
+    ai-premium:
+      name: "AI Premium"
+      monthly-price: 2999
+      quarterly-price: 8099  # 10% discount
+      annual-price: 29999    # 17% discount
+      features:
+        - "All Pro features"
+        - "Behavioral AI insights"
+        - "Trading psychology analytics"
+        - "Emotion tracking"
+        - "AI coaching"
+      limits:
+        max-watchlists: -1
+        max-alerts: 500
+        api-calls-per-day: 50000
+        ai-analysis-per-month: 1000
+    
+    institutional:
+      name: "Institutional"
+      monthly-price: 25000
+      custom-pricing: true
+      features:
+        - "All AI Premium features"
+        - "Multi-user accounts"
+        - "Custom integrations"
+        - "Priority support"
+        - "Advanced analytics"
+        - "Risk management tools"
+      limits:
+        max-watchlists: -1
+        max-alerts: -1
+        api-calls-per-day: -1  # Unlimited
+        ai-analysis-per-month: -1
+        max-sub-accounts: 100
+
+  # Billing Configuration
+  billing:
+    trial-period-days: 7
+    grace-period-days: 3
+    dunning-retry-count: 3
+    dunning-retry-interval: 24  # hours
+  
+  # Usage Tracking
+  usage:
+    sync-interval: 300  # 5 minutes
+    aggregation-window: 3600  # 1 hour
+    retention-days: 90
+
+# Rate Limiting Configuration
+rate-limiting:
+  subscription:
+    capacity: 50
+    tokens: 10
+    refill-period: 60
+
+# MANDATORY: Resilience4j Circuit Breaker Configuration per TradeMaster Standards  
+resilience4j:
+  circuitbreaker:
+    instances:
+      subscription-service:
+        failure-rate-threshold: 50.0
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        
+      payment-service:
+        failure-rate-threshold: 60.0
+        sliding-window-size: 15
+        minimum-number-of-calls: 8
+        wait-duration-in-open-state: 60s
+        
+      notification-service:
+        failure-rate-threshold: 40.0
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        wait-duration-in-open-state: 45s
+        
+      database-service:
+        failure-rate-threshold: 30.0
+        sliding-window-size: 25
+        minimum-number-of-calls: 5
+        wait-duration-in-open-state: 120s
+        
+  retry:
+    instances:
+      subscription-service:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          
+      payment-service:
+        max-attempts: 2
+        wait-duration: 2s
+        
+      notification-service:
+        max-attempts: 4
+        wait-duration: 500ms
+        
+      database-service:
+        max-attempts: 5
+        wait-duration: 200ms
+        
+  timelimiter:
+    instances:
+      subscription-service:
+        timeout-duration: 10s
+        cancel-running-future: true
+        
+      payment-service:
+        timeout-duration: 15s
+        cancel-running-future: true
+        
+      notification-service:
+        timeout-duration: 8s
+        cancel-running-future: true
+        
+      database-service:
+        timeout-duration: 5s
+        cancel-running-future: true
+
+# MANDATORY: Enhanced Monitoring Configuration per TradeMaster Standards
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,subscription,env,threaddump,heapdump
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+    info:
+      enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    subscription:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 1m
+        descriptions: true
+    tags:
+      application: trademaster
+      service: subscription-service
+      version: 2.0.0
+      environment: ${spring.profiles.active:local}
+    web:
+      client:
+        request:
+          autotime:
+            enabled: true
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true
+        "[subscription.creation.duration]": true
+        "[payment.processing.duration]": true
+        "[database.query.duration]": true
+      percentiles:
+        http.server.requests: 0.5, 0.75, 0.95, 0.99
+        subscription.creation.duration: 0.5, 0.75, 0.95, 0.99
+        payment.processing.duration: 0.5, 0.75, 0.95, 0.99
+        database.query.duration: 0.5, 0.75, 0.95, 0.99
+        external.service.call.duration: 0.5, 0.75, 0.95, 0.99
+      slo:
+        http.server.requests: 50ms,100ms,200ms,500ms
+        subscription.creation.duration: 50ms,100ms,500ms,1s
+        payment.processing.duration: 100ms,500ms,1s,5s
+        database.query.duration: 10ms,50ms,100ms,500ms
+        external.service.call.duration: 100ms,500ms,1s,3s
+  info:
+    env:
+      enabled: true
+    git:
+      mode: full
+    build:
+      enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
+    diskspace:
+      enabled: true
+    redis:
+      enabled: true
+    db:
+      enabled: true
+      
+# Application Configuration
+app:
+  version: "1.0.0"
+  
+  # Services Configuration
+  services:
+    payment-gateway:
+      url: ${PAYMENT_GATEWAY_URL:http://localhost:8084}
+      api-key: ${PAYMENT_GATEWAY_API_KEY:}
+      timeout: 10s
+      retry-attempts: 3
+    
+  # Kafka Topics Configuration
+  kafka:
+    topics:
+      subscription-events: subscription-events
+      usage-events: usage-events
+      billing-events: billing-events
+      notification-events: notification-events
+      
+  # Scheduler Configuration
+  scheduler:
+    billing:
+      enabled: true
+    trial-expiration:
+      enabled: true
+    usage-reset:
+      enabled: true
+    cleanup:
+      enabled: true
+      
+  # Subscription Configuration
+  subscription:
+    trial-period-days: 14
+    grace-period-days: 7
+    max-retry-attempts: 3
+    webhook-base-url: ${WEBHOOK_BASE_URL:http://localhost:8086}/api/v1/webhooks
+    payment-service-url: ${PAYMENT_SERVICE_URL:http://localhost:8085}/api/v1
+
+  # Billing Configuration
+  billing:
+    retry:
+      max-attempts: 3
+    grace-period-days: 7
+
+  # Performance Configuration
+  performance:
+    monitoring:
+      enabled: true
+
+  # Notification Configuration
+  notification:
+    email:
+      enabled: true
+      template-path: classpath:templates/email/
+    sms:
+      enabled: false
+
+  # Audit Configuration
+  audit:
+    enabled: true
+    retention-days: 2555  # 7 years for financial compliance
+
+# Logging Configuration
+logging:
+  level:
+    com.trademaster.subscription: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Custom Application Properties - Merged with app section above
+
+# MANDATORY: TradeMaster Kong Gateway Integration
+trademaster:
+  consul:
+    datacenter: ${CONSUL_DATACENTER:trademaster-dc}
+
+  security:
+    service:
+      enabled: ${SERVICE_AUTH_ENABLED:true}
+      api-key: ${SUBSCRIPTION_SERVICE_API_KEY:subscription-service-api-key-dev}
+
+  service:
+    name: subscription-service
+
+  # Kong Gateway Configuration
+  kong:
+    gateway-url: ${KONG_API_GATEWAY_URL:http://kong:8000}
+    admin-url: ${KONG_ADMIN_URL:http://kong:8001}
+    timeout: 30000
+    connect-timeout: 5000
+    retries: 3
+
+  # Internal Service URLs (via Kong Gateway)
+  internal-services:
+    payment-service: ${PAYMENT_SERVICE_INTERNAL_URL:http://kong:8000/internal/payment}
+    notification-service: ${NOTIFICATION_SERVICE_INTERNAL_URL:http://kong:8000/internal/notification}
+    trading-service: ${TRADING_SERVICE_INTERNAL_URL:http://kong:8000/internal/trading}
+    user-service: ${USER_SERVICE_INTERNAL_URL:http://kong:8000/internal/user}
+
+  # Circuit Breaker Configuration
+  circuit-breaker:
+    enabled: true
+    failure-threshold: 5
+    timeout: 30000
+    recovery-timeout: 60000

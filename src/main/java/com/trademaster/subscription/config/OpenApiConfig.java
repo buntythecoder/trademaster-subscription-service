@@ -15,151 +15,163 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 /**
- * OpenAPI Configuration
- * 
- * Configures OpenAPI/Swagger documentation for the Subscription Service API.
- * Provides comprehensive API documentation with authentication and examples.
- * 
- * @author TradeMaster Development Team
+ * OpenAPI 3.0 Documentation Configuration
+ *
+ * MANDATORY implementation following TradeMaster Golden Specification.
+ * Provides comprehensive API documentation with enterprise features.
+ *
+ * Features:
+ * - Multi-environment server configuration
+ * - JWT and API key authentication schemes
+ * - Comprehensive API descriptions with SLA information
+ * - Kong Gateway integration documentation
+ *
+ * @author TradeMaster Engineering Team
  * @version 1.0.0
+ * @since 2025-01-09
  */
 @Configuration
 public class OpenApiConfig {
 
-    @Value("${app.version:1.0.0}")
-    private String appVersion;
+    @Value("${server.servlet.context-path:/subscription}")
+    private String contextPath;
 
-    @Value("${app.api.base-url:http://localhost:8082}")
-    private String baseUrl;
+    @Value("${server.port}")
+    private String serverPort;
 
     @Bean
     public OpenAPI subscriptionServiceOpenAPI() {
         return new OpenAPI()
-            .info(apiInfo())
-            .servers(List.of(
-                new Server()
-                    .url(baseUrl)
-                    .description("Subscription Service API Server"),
-                new Server()
-                    .url("https://api.trademaster.com")
-                    .description("Production API Server"),
-                new Server()
-                    .url("https://staging-api.trademaster.com")
-                    .description("Staging API Server")
-            ))
-            .components(apiComponents())
-            .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
-            .addSecurityItem(new SecurityRequirement().addList("API Key Authentication"));
+            .info(buildApiInfo())
+            .servers(buildServerList())
+            .addSecurityItem(buildSecurityRequirement())
+            .components(buildSecurityComponents());
     }
 
-    private Info apiInfo() {
+    private Info buildApiInfo() {
         return new Info()
             .title("TradeMaster Subscription Service API")
+            .version("1.0.0")
             .description("""
-                ## Overview
-                The TradeMaster Subscription Service provides comprehensive subscription management capabilities including:
-                
-                - **Subscription Lifecycle Management**: Create, activate, upgrade, cancel, and suspend subscriptions
-                - **Usage Tracking & Limits**: Real-time usage monitoring with tier-based limits
-                - **Billing Integration**: Automated recurring billing with payment gateway integration
-                - **Event-Driven Architecture**: Kafka-based events for system integration
-                - **Multi-Tier Support**: FREE, PRO, AI PREMIUM, and INSTITUTIONAL tiers
-                
-                ## Features
-                - ✅ Multi-tier subscription system with flexible pricing
-                - ✅ Real-time usage tracking and limit enforcement  
-                - ✅ Automated recurring billing with retry logic
-                - ✅ Trial period management with expiration handling
-                - ✅ Event publishing for system integration
-                - ✅ Comprehensive metrics and monitoring
-                - ✅ PCI DSS compliant payment processing
-                
-                ## Subscription Tiers
-                
-                ### FREE Tier
-                - **Price**: $0/month
-                - **API Calls**: 1,000/month
-                - **Portfolios**: 3
-                - **Watchlists**: 5
-                - **Alerts**: 10
-                - **Basic Analytics**: ✅
-                
-                ### PRO Tier
-                - **Price**: $29.99/month ($299.99/year)
-                - **API Calls**: 10,000/month
-                - **Portfolios**: 10
-                - **Watchlists**: 25
-                - **Alerts**: 100
-                - **Advanced Analytics**: ✅
-                - **Data Export**: ✅
-                
-                ### AI PREMIUM Tier
-                - **Price**: $99.99/month ($899.99/year)
-                - **API Calls**: 50,000/month
-                - **Portfolios**: 50
-                - **Watchlists**: 100
-                - **Alerts**: 500
-                - **AI Insights**: 1,000/month
-                - **Priority Support**: ✅
-                
-                ### INSTITUTIONAL Tier
-                - **Price**: Custom pricing
-                - **Unlimited Usage**: All features
-                - **Dedicated Support**: ✅
-                - **SLA Guarantees**: ✅
-                - **Custom Integration**: ✅
-                
-                ## Usage Tracking
-                Real-time usage tracking with automatic limit enforcement:
-                - Feature-based usage monitoring
-                - Monthly usage reset
-                - Warning notifications at 80% limit
-                - Graceful handling of limit exceeded scenarios
-                
-                ## Event System
-                Publishes events for:
-                - Subscription lifecycle changes
-                - Usage limit violations
-                - Billing events
-                - Trial notifications
-                
-                ## Error Handling
-                All endpoints return structured error responses with:
-                - HTTP status codes
-                - Error codes for programmatic handling
-                - Detailed error messages
-                - Field-level validation errors where applicable
-                
-                ## Rate Limiting
-                API endpoints are rate limited based on subscription tier:
-                - FREE: 100 requests/hour
-                - PRO: 1,000 requests/hour  
-                - AI PREMIUM: 5,000 requests/hour
-                - INSTITUTIONAL: Unlimited
+                ## TradeMaster Subscription Service
+
+                **Production-ready subscription management service with enterprise features**
+
+                ### Core Features
+                - **Subscription Lifecycle**: Complete management with SLA monitoring
+                - **Usage Tracking**: Real-time tracking with performance metrics
+                - **Multi-Tier Support**: FREE, PRO, AI Premium, and Institutional tiers
+                - **Circuit Breaker Protection**: Resilient external service integration
+                - **Performance Monitoring**: Real-time SLA compliance tracking
+
+                ### Architecture
+                - **Java 24 + Virtual Threads**: High-concurrency processing
+                - **Functional Programming**: Zero if-else patterns, Result types
+                - **Zero Trust Security**: JWT authentication with role-based access
+                - **Consul Service Discovery**: Dynamic service registration
+                - **Kong API Gateway**: API key authentication for internal services
+
+                ### SLA Targets
+                - **Critical Operations**: ≤25ms processing time
+                - **High Priority**: ≤50ms processing time
+                - **Standard Operations**: ≤100ms processing time
+                - **Background Tasks**: ≤500ms processing time
+
+                ### Monitoring & Observability
+                - Prometheus metrics at `/actuator/prometheus`
+                - Health checks at `/actuator/health`
+                - Circuit breaker status at `/api/v1/subscription/circuit-breakers/status`
+
+                ### Internal API Authentication
+                Internal service endpoints (`/api/internal/*`) require Kong API key authentication
+                with `X-API-Key` header and proper consumer configuration.
                 """)
-            .version(appVersion)
-            .contact(new Contact()
-                .name("TradeMaster Development Team")
-                .email("dev@trademaster.com")
-                .url("https://docs.trademaster.com"))
-            .license(new License()
-                .name("TradeMaster License")
-                .url("https://trademaster.com/license"));
+            .contact(buildContactInfo())
+            .license(buildLicenseInfo());
     }
 
-    private Components apiComponents() {
+    private Contact buildContactInfo() {
+        return new Contact()
+            .name("TradeMaster Engineering Team")
+            .email("engineering@trademaster.com")
+            .url("https://trademaster.com/support");
+    }
+
+    private License buildLicenseInfo() {
+        return new License()
+            .name("TradeMaster Enterprise License")
+            .url("https://trademaster.com/license");
+    }
+
+    private List<Server> buildServerList() {
+        return List.of(
+            new Server()
+                .url("http://localhost:" + serverPort + contextPath)
+                .description("Development Environment"),
+            new Server()
+                .url("https://api-dev.trademaster.com" + contextPath)
+                .description("Development Environment (Remote)"),
+            new Server()
+                .url("https://api-staging.trademaster.com" + contextPath)
+                .description("Staging Environment"),
+            new Server()
+                .url("https://api.trademaster.com" + contextPath)
+                .description("Production Environment")
+        );
+    }
+
+    private SecurityRequirement buildSecurityRequirement() {
+        return new SecurityRequirement().addList("Bearer Authentication");
+    }
+
+    private Components buildSecurityComponents() {
         return new Components()
             .addSecuritySchemes("Bearer Authentication",
                 new SecurityScheme()
                     .type(SecurityScheme.Type.HTTP)
                     .scheme("bearer")
                     .bearerFormat("JWT")
-                    .description("JWT token obtained from authentication service"))
+                    .description("""
+                        ### JWT Authentication
+
+                        **Required for all authenticated endpoints**
+
+                        #### How to obtain a token:
+                        1. Authenticate with TradeMaster Authentication Service
+                        2. Extract JWT token from the response
+                        3. Include token in Authorization header: `Bearer <token>`
+
+                        #### Token Structure:
+                        - **Issuer**: TradeMaster Authentication Service
+                        - **Expiration**: 1 hour (configurable)
+                        - **Claims**: user ID, roles, permissions
+
+                        #### Internal Service Authentication:
+                        Internal endpoints use Kong API key authentication:
+                        ```
+                        X-API-Key: [service-api-key]
+                        ```
+                        """))
             .addSecuritySchemes("API Key Authentication",
                 new SecurityScheme()
                     .type(SecurityScheme.Type.APIKEY)
                     .in(SecurityScheme.In.HEADER)
                     .name("X-API-Key")
-                    .description("API key for service-to-service authentication"));
+                    .description("""
+                        ### API Key Authentication
+
+                        **Required for internal service-to-service communication**
+
+                        #### Kong Gateway Integration:
+                        - Kong validates API keys and sets consumer headers
+                        - Services recognize `X-Consumer-ID` and `X-Consumer-Username`
+                        - Fallback to direct API key validation if needed
+
+                        #### Usage:
+                        ```
+                        X-API-Key: [service-api-key]
+                        X-Service-ID: [calling-service-name]
+                        ```
+                        """));
     }
 }

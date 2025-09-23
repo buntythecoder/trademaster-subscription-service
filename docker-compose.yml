@@ -5,7 +5,7 @@ services:
   subscription-service:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.runtime
     ports:
       - "8086:8086"
     environment:
@@ -200,7 +200,5 @@ volumes:
 # Network for inter-service communication
 networks:
   trademaster-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
+    external: true
+    name: subscription-network

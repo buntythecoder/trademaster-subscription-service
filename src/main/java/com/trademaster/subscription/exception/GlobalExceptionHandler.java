@@ -36,11 +36,19 @@ import java.util.stream.Collectors;
  * @version 1.0.0
  */
 @RestControllerAdvice
-@RequiredArgsConstructor
 @Slf4j
 public class GlobalExceptionHandler {
 
     private final StructuredLoggingService loggingService;
+
+    public GlobalExceptionHandler(StructuredLoggingService loggingService) {
+        this.loggingService = loggingService;
+    }
+
+    // Optional constructor for cases where StructuredLoggingService is not available
+    public GlobalExceptionHandler() {
+        this.loggingService = null;
+    }
 
     /**
      * Handle subscription not found exceptions
@@ -117,14 +125,16 @@ public class GlobalExceptionHandler {
         );
 
         // Log security incident for usage limit violations
-        loggingService.logSecurityIncident(
-            "usage_limit_exceeded",
-            "medium",
-            ex.getUserId() != null ? ex.getUserId().toString() : null,
-            null,
-            null,
-            usageDetails
-        );
+        if (loggingService != null) {
+            loggingService.logSecurityIncident(
+                "usage_limit_exceeded",
+                "medium",
+                ex.getUserId() != null ? ex.getUserId().toString() : null,
+                null,
+                null,
+                usageDetails
+            );
+        }
         
         log.warn("Usage limit exceeded: {} (correlationId: {}, userId: {})", 
                 ex.getMessage(), 
@@ -255,17 +265,19 @@ public class GlobalExceptionHandler {
         );
 
         // Log error with full context
-        loggingService.logError(
-            "runtime_exception",
-            ex.getMessage(),
-            "RUNTIME_EXCEPTION",
-            ex,
-            Map.of(
-                "path", extractPath(request),
-                "correlationId", CorrelationConfig.CorrelationContext.getCorrelationId(),
-                "requestId", CorrelationConfig.CorrelationContext.getRequestId()
-            )
-        );
+        if (loggingService != null) {
+            loggingService.logError(
+                "runtime_exception",
+                ex.getMessage(),
+                "RUNTIME_EXCEPTION",
+                ex,
+                Map.of(
+                    "path", extractPath(request),
+                    "correlationId", CorrelationConfig.CorrelationContext.getCorrelationId(),
+                    "requestId", CorrelationConfig.CorrelationContext.getRequestId()
+                )
+            );
+        }
         
         log.error("Unexpected runtime exception (correlationId: {}): ", 
                 CorrelationConfig.CorrelationContext.getCorrelationId(), ex);
@@ -290,17 +302,19 @@ public class GlobalExceptionHandler {
         );
 
         // Log error with full context
-        loggingService.logError(
-            "generic_exception",
-            ex.getMessage(),
-            "GENERIC_EXCEPTION",
-            ex,
-            Map.of(
-                "path", extractPath(request),
-                "correlationId", CorrelationConfig.CorrelationContext.getCorrelationId(),
-                "requestId", CorrelationConfig.CorrelationContext.getRequestId()
-            )
-        );
+        if (loggingService != null) {
+            loggingService.logError(
+                "generic_exception",
+                ex.getMessage(),
+                "GENERIC_EXCEPTION",
+                ex,
+                Map.of(
+                    "path", extractPath(request),
+                    "correlationId", CorrelationConfig.CorrelationContext.getCorrelationId(),
+                    "requestId", CorrelationConfig.CorrelationContext.getRequestId()
+                )
+            );
+        }
         
         log.error("Unexpected exception (correlationId: {}): ", 
                 CorrelationConfig.CorrelationContext.getCorrelationId(), ex);
