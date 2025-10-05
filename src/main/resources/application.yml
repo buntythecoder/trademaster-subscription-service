@@ -192,12 +192,6 @@ logging:
   pattern:
     console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
 
-# TradeMaster Security Configuration
-trademaster:
-  security:
-    service:
-      enabled: true
-
 # OpenAPI Documentation
 springdoc:
   api-docs:
@@ -221,7 +215,7 @@ app:
     enabled: true
     retention-days: 365
 
-# TradeMaster Configuration (minimal)
+# TradeMaster Configuration
 trademaster:
   service:
     name: subscription-service

@@ -79,7 +79,8 @@ public class SecurityConfig {
                 ).permitAll()
 
                 // Internal API endpoints (Kong API key authentication via ServiceApiKeyFilter)
-                .requestMatchers("/api/internal/**").hasRole("SERVICE")
+                // Use permitAll() here - ServiceApiKeyFilter handles authentication
+                .requestMatchers("/api/internal/**").permitAll()
 
                 // External API endpoints with JWT authentication
                 // Admin endpoints - require admin role

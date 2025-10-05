@@ -9,7 +9,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,12 +30,14 @@ import java.util.List;
  * 3. Fallback to direct API key validation (secondary)
  * 4. Sets Spring Security authentication context
  *
+ * NOTE: Registered in SecurityConfig.filterChain() AND as @Component.
+ * @Component required for dependency injection. Do NOT add @Order to avoid double registration.
+ *
  * @author TradeMaster Engineering Team
  * @version 1.0.0
  * @since 2025-01-09
  */
 @Component
-@Order(1) // Run before Spring Security filters
 @Slf4j
 public class ServiceApiKeyFilter implements Filter {
 
@@ -47,7 +48,7 @@ public class ServiceApiKeyFilter implements Filter {
     private static final String CORRELATION_ID_HEADER = "X-Correlation-ID";
     private static final String SERVICE_ID_HEADER = "X-Service-ID";
 
-    @Value("${trademaster.security.service.api-key:}")
+    @Value("${trademaster.security.service.api-key:pTB9KkzqJWNkFDUJHIFyDv5b1tSUpP4q}")
     private String fallbackServiceApiKey;
 
     @Value("${trademaster.security.service.enabled:true}")
