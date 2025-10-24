@@ -3,7 +3,11 @@ package com.trademaster.subscription.service.factory;
 import com.trademaster.subscription.entity.Subscription;
 import com.trademaster.subscription.enums.SubscriptionStatus;
 import com.trademaster.subscription.enums.SubscriptionTier;
-import com.trademaster.subscription.service.SubscriptionNotificationService;
+import com.trademaster.subscription.events.SubscriptionEventType;
+import com.trademaster.subscription.events.SubscriptionNotificationEvent;
+import com.trademaster.subscription.events.SubscriptionUpgradeNotificationEvent;
+import com.trademaster.subscription.events.SubscriptionCancellationNotificationEvent;
+import com.trademaster.subscription.events.SubscriptionBillingNotificationEvent;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -25,9 +29,9 @@ public class SubscriptionEventFactory {
     /**
      * Create subscription event based on event type using pattern matching
      */
-    public SubscriptionNotificationService.SubscriptionEvent createSubscriptionEvent(
+    public SubscriptionNotificationEvent createSubscriptionEvent(
             EventCreationContext context) {
-        
+
         return switch (context.eventType()) {
             case SUBSCRIPTION_CREATED -> createSubscriptionCreatedEvent(context);
             case SUBSCRIPTION_ACTIVATED -> createSubscriptionActivatedEvent(context);
@@ -40,10 +44,10 @@ public class SubscriptionEventFactory {
     /**
      * Create subscription upgrade event with previous tier information
      */
-    public SubscriptionNotificationService.SubscriptionUpgradeEvent createSubscriptionUpgradeEvent(
+    public SubscriptionUpgradeNotificationEvent createSubscriptionUpgradeEvent(
             UpgradeEventContext context) {
-        
-        return new SubscriptionNotificationService.SubscriptionUpgradeEvent(
+
+        return new SubscriptionUpgradeNotificationEvent(
             context.subscription().getId(),
             context.subscription().getUserId(),
             context.previousTier(),
@@ -56,10 +60,10 @@ public class SubscriptionEventFactory {
     /**
      * Create subscription cancellation event with reason
      */
-    public SubscriptionNotificationService.SubscriptionCancellationEvent createSubscriptionCancellationEvent(
+    public SubscriptionCancellationNotificationEvent createSubscriptionCancellationEvent(
             CancellationEventContext context) {
-        
-        return new SubscriptionNotificationService.SubscriptionCancellationEvent(
+
+        return new SubscriptionCancellationNotificationEvent(
             context.subscription().getId(),
             context.subscription().getUserId(),
             context.cancellationReason(),
@@ -71,10 +75,10 @@ public class SubscriptionEventFactory {
     /**
      * Create subscription billing event with transaction information
      */
-    public SubscriptionNotificationService.SubscriptionBillingEvent createSubscriptionBillingEvent(
+    public SubscriptionBillingNotificationEvent createSubscriptionBillingEvent(
             BillingEventContext context) {
-        
-        return new SubscriptionNotificationService.SubscriptionBillingEvent(
+
+        return new SubscriptionBillingNotificationEvent(
             context.subscription().getId(),
             context.subscription().getUserId(),
             context.transactionId(),
@@ -85,50 +89,50 @@ public class SubscriptionEventFactory {
     }
     
     // Private factory methods using functional patterns
-    
-    private SubscriptionNotificationService.SubscriptionEvent createSubscriptionCreatedEvent(
+
+    private SubscriptionNotificationEvent createSubscriptionCreatedEvent(
             EventCreationContext context) {
-        
-        return new SubscriptionNotificationService.SubscriptionEvent(
+
+        return new SubscriptionNotificationEvent(
             context.subscription().getId(),
             context.subscription().getUserId(),
-            SubscriptionNotificationService.SubscriptionEventType.SUBSCRIPTION_CREATED,
+            SubscriptionEventType.SUBSCRIPTION_CREATED,
             LocalDateTime.now(),
             context.correlationId()
         );
     }
-    
-    private SubscriptionNotificationService.SubscriptionEvent createSubscriptionActivatedEvent(
+
+    private SubscriptionNotificationEvent createSubscriptionActivatedEvent(
             EventCreationContext context) {
-        
-        return new SubscriptionNotificationService.SubscriptionEvent(
+
+        return new SubscriptionNotificationEvent(
             context.subscription().getId(),
             context.subscription().getUserId(),
-            SubscriptionNotificationService.SubscriptionEventType.SUBSCRIPTION_ACTIVATED,
+            SubscriptionEventType.SUBSCRIPTION_ACTIVATED,
             LocalDateTime.now(),
             context.correlationId()
         );
     }
-    
-    private SubscriptionNotificationService.SubscriptionEvent createSubscriptionExpiredEvent(
+
+    private SubscriptionNotificationEvent createSubscriptionExpiredEvent(
             EventCreationContext context) {
-        
-        return new SubscriptionNotificationService.SubscriptionEvent(
+
+        return new SubscriptionNotificationEvent(
             context.subscription().getId(),
             context.subscription().getUserId(),
-            SubscriptionNotificationService.SubscriptionEventType.SUBSCRIPTION_EXPIRED,
+            SubscriptionEventType.SUBSCRIPTION_EXPIRED,
             LocalDateTime.now(),
             context.correlationId()
         );
     }
-    
-    private SubscriptionNotificationService.SubscriptionEvent createSubscriptionSuspendedEvent(
+
+    private SubscriptionNotificationEvent createSubscriptionSuspendedEvent(
             EventCreationContext context) {
-        
-        return new SubscriptionNotificationService.SubscriptionEvent(
+
+        return new SubscriptionNotificationEvent(
             context.subscription().getId(),
             context.subscription().getUserId(),
-            SubscriptionNotificationService.SubscriptionEventType.SUBSCRIPTION_SUSPENDED,
+            SubscriptionEventType.SUBSCRIPTION_SUSPENDED,
             LocalDateTime.now(),
             context.correlationId()
         );
@@ -137,7 +141,7 @@ public class SubscriptionEventFactory {
     // Context Records for Factory Operations
     public record EventCreationContext(
         Subscription subscription,
-        SubscriptionNotificationService.SubscriptionEventType eventType,
+        SubscriptionEventType eventType,
         String correlationId
     ) {}
     

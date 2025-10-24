@@ -110,12 +110,6 @@ public class Subscription {
     private LocalDateTime nextBillingDate;
 
     /**
-     * Last successful billing date
-     */
-    @Column(name = "last_billing_date")
-    private LocalDateTime lastBillingDate;
-
-    /**
      * Trial end date (if applicable)
      */
     @Column(name = "trial_end_date")
@@ -183,19 +177,13 @@ public class Subscription {
      */
     @Column(name = "activated_date")
     private LocalDateTime activatedDate;
-    
-    /**
-     * When subscription was cancelled (if applicable)
-     */
-    @Column(name = "cancelled_date")
-    private LocalDateTime cancelledDate;
-    
+
     /**
      * When subscription was upgraded (if applicable)
      */
     @Column(name = "upgraded_date")
     private LocalDateTime upgradedDate;
-    
+
     /**
      * Last billing date
      */
@@ -229,148 +217,4 @@ public class Subscription {
     @Column(name = "version")
     @Builder.Default
     private Long version = 0L;
-
-    // Business Logic Methods
-
-    /**
-     * Check if subscription is currently active
-     */
-    public boolean isActive() {
-        return status.hasAccess() && 
-               (endDate == null || endDate.isAfter(LocalDateTime.now()));
-    }
-
-    /**
-     * Check if subscription is in trial period
-     */
-    public boolean isInTrial() {
-        return status == SubscriptionStatus.TRIAL &&
-               trialEndDate != null &&
-               trialEndDate.isAfter(LocalDateTime.now());
-    }
-
-    /**
-     * Check if subscription has expired
-     */
-    public boolean isExpired() {
-        return endDate != null && endDate.isBefore(LocalDateTime.now());
-    }
-
-    /**
-     * Check if subscription can be billed
-     */
-    public boolean canBeBilled() {
-        return status.isBillable() && autoRenewal && nextBillingDate != null;
-    }
-
-    /**
-     * Check if subscription is due for billing
-     */
-    public boolean isDueForBilling() {
-        return canBeBilled() && nextBillingDate.isBefore(LocalDateTime.now());
-    }
-
-    /**
-     * Check if subscription is in grace period
-     */
-    public boolean isInGracePeriod() {
-        return status == SubscriptionStatus.EXPIRED &&
-               nextBillingDate != null &&
-               nextBillingDate.plusDays(3).isAfter(LocalDateTime.now());
-    }
-
-    /**
-     * Calculate days remaining in current billing cycle
-     */
-    public long getDaysRemainingInCycle() {
-        if (nextBillingDate == null) return 0;
-        return java.time.Duration.between(LocalDateTime.now(), nextBillingDate).toDays();
-    }
-
-    /**
-     * Calculate monthly savings compared to monthly billing
-     */
-    public BigDecimal getMonthlySavings() {
-        if (billingCycle == BillingCycle.MONTHLY) {
-            return BigDecimal.ZERO;
-        }
-        
-        BigDecimal monthlyTotal = monthlyPrice;
-        BigDecimal effectiveMonthly = billingAmount.divide(
-            BigDecimal.valueOf(billingCycle.getMonths()), 
-            2, 
-            java.math.RoundingMode.HALF_UP
-        );
-        
-        return monthlyTotal.subtract(effectiveMonthly);
-    }
-
-    /**
-     * Activate subscription
-     */
-    public void activate() {
-        if (status == SubscriptionStatus.TRIAL) {
-            this.status = SubscriptionStatus.ACTIVE;
-        } else if (status.canTransitionTo(SubscriptionStatus.ACTIVE)) {
-            this.status = SubscriptionStatus.ACTIVE;
-            this.startDate = LocalDateTime.now();
-            this.failedBillingAttempts = 0;
-        }
-    }
-
-    /**
-     * Cancel subscription
-     */
-    public void cancel(String reason) {
-        if (status.canCancel()) {
-            this.status = SubscriptionStatus.CANCELLED;
-            this.cancellationReason = reason;
-            this.cancelledAt = LocalDateTime.now();
-            this.autoRenewal = false;
-        }
-    }
-
-    /**
-     * Suspend subscription
-     */
-    public void suspend() {
-        if (status.canTransitionTo(SubscriptionStatus.SUSPENDED)) {
-            this.status = SubscriptionStatus.SUSPENDED;
-        }
-    }
-
-    /**
-     * Update next billing date based on billing cycle
-     */
-    public void updateNextBillingDate() {
-        if (nextBillingDate != null) {
-            this.nextBillingDate = billingCycle.getNextBillingDate(nextBillingDate);
-        } else if (startDate != null) {
-            this.nextBillingDate = billingCycle.getNextBillingDate(startDate);
-        }
-    }
-
-    /**
-     * Record successful billing
-     */
-    public void recordSuccessfulBilling() {
-        this.lastBillingDate = LocalDateTime.now();
-        this.failedBillingAttempts = 0;
-        updateNextBillingDate();
-        
-        if (status == SubscriptionStatus.SUSPENDED || status == SubscriptionStatus.EXPIRED) {
-            this.status = SubscriptionStatus.ACTIVE;
-        }
-    }
-
-    /**
-     * Record failed billing attempt
-     */
-    public void recordFailedBilling() {
-        this.failedBillingAttempts++;
-        
-        if (failedBillingAttempts >= 3) {
-            this.status = SubscriptionStatus.SUSPENDED;
-        }
-    }
 }

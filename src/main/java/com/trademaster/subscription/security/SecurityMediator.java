@@ -37,11 +37,11 @@ public class SecurityMediator {
             .onSuccess(secureContext -> auditService.logSecureAccess(context, correlationId))
             .onFailure(error -> auditService.logSecurityFailure(context, new SecurityError(error), correlationId))
             .mapError(error -> switch (error) {
-                case String msg when msg.contains("authentication") -> 
+                case String msg when msg.toLowerCase().contains("authentication") ->
                     new SecurityError("Authentication failed: " + msg);
-                case String msg when msg.contains("authorization") -> 
+                case String msg when msg.toLowerCase().contains("authorization") ->
                     new SecurityError("Authorization denied: " + msg);
-                case String msg when msg.contains("risk") -> 
+                case String msg when msg.toLowerCase().contains("risk") ->
                     new SecurityError("Risk assessment failed: " + msg);
                 default -> new SecurityError("Security validation failed: " + error);
             });

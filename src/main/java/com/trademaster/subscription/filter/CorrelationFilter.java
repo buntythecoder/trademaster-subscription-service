@@ -10,6 +10,7 @@ import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -65,9 +66,8 @@ public class CorrelationFilter implements Filter, Ordered {
             MDC.put("uri", requestUri);
             MDC.put("remoteAddr", getClientIpAddress(httpRequest));
 
-            if (userId != null) {
-                MDC.put("userId", userId);
-            }
+            // MANDATORY: Rule #3 - No if-else, using Optional
+            Optional.ofNullable(userId).ifPresent(id -> MDC.put("userId", id));
 
             // Store in thread-local for access in services
             CorrelationConfig.CorrelationContext.setCorrelationId(correlationId);
@@ -101,42 +101,41 @@ public class CorrelationFilter implements Filter, Ordered {
         log.info("CorrelationFilter destroyed");
     }
 
+    /**
+     * MANDATORY: Rule #3 - No if-else, using Optional pattern
+     */
     private String extractOrGenerateCorrelationId(HttpServletRequest request) {
-        // Try to extract from header first
-        String correlationId = request.getHeader(CorrelationConfig.CORRELATION_ID_HEADER);
-
-        if (correlationId == null || correlationId.trim().isEmpty()) {
-            // Generate new correlation ID
-            correlationId = UUID.randomUUID().toString();
-            log.debug("Generated new correlation ID: {}", correlationId);
-        } else {
-            log.debug("Using existing correlation ID from header: {}", correlationId);
-        }
-
-        return correlationId;
+        return Optional.ofNullable(request.getHeader(CorrelationConfig.CORRELATION_ID_HEADER))
+            .filter(id -> !id.trim().isEmpty())
+            .map(id -> {
+                log.debug("Using existing correlation ID from header: {}", id);
+                return id;
+            })
+            .orElseGet(() -> {
+                String newId = UUID.randomUUID().toString();
+                log.debug("Generated new correlation ID: {}", newId);
+                return newId;
+            });
     }
 
+    /**
+     * MANDATORY: Rule #3 - No if-else, using Optional pattern
+     */
     private String extractUserId(HttpServletRequest request) {
-        String userId = request.getHeader(CorrelationConfig.USER_ID_HEADER);
-        if (userId == null || userId.trim().isEmpty()) {
-            // Try to extract from JWT token or other auth mechanisms
-            // For now, return null - will be set by security layer
-            return null;
-        }
-        return userId;
+        return Optional.ofNullable(request.getHeader(CorrelationConfig.USER_ID_HEADER))
+            .filter(id -> !id.trim().isEmpty())
+            .orElse(null); // Will be set by security layer
     }
 
+    /**
+     * MANDATORY: Rule #3 - No if-else, using Optional chaining
+     */
     private String getClientIpAddress(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
-        }
-
-        return request.getRemoteAddr();
+        return Optional.ofNullable(request.getHeader("X-Forwarded-For"))
+            .filter(header -> !header.isEmpty())
+            .map(header -> header.split(",")[0].trim())
+            .or(() -> Optional.ofNullable(request.getHeader("X-Real-IP"))
+                .filter(header -> !header.isEmpty()))
+            .orElseGet(request::getRemoteAddr);
     }
 }

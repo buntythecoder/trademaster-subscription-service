@@ -66,27 +66,35 @@ public class RiskAssessmentService {
         };
     }
     
+    /**
+     * MANDATORY: Rule #3 - No if-else, using Optional pattern
+     */
     private double assessUserAgentRisk(String userAgent) {
-        if (userAgent == null || userAgent.isEmpty()) {
-            return 30.0; // Missing user agent is suspicious
-        }
-        
-        return switch (userAgent.toLowerCase()) {
-            case String ua when ua.contains("chrome") -> 5.0;
-            case String ua when ua.contains("firefox") -> 5.0;
-            case String ua when ua.contains("safari") -> 5.0;
-            case String ua when ua.contains("bot") -> 25.0;
-            case String ua when ua.contains("curl") -> 20.0;
-            default -> 10.0;
-        };
+        return java.util.Optional.ofNullable(userAgent)
+            .filter(ua -> !ua.isEmpty())
+            .map(ua -> switch (ua.toLowerCase()) {
+                case String agent when agent.contains("chrome") -> 5.0;
+                case String agent when agent.contains("firefox") -> 5.0;
+                case String agent when agent.contains("safari") -> 5.0;
+                case String agent when agent.contains("bot") -> 25.0;
+                case String agent when agent.contains("curl") -> 20.0;
+                default -> 10.0;
+            })
+            .orElse(30.0); // Missing user agent is suspicious
     }
     
+    /**
+     * MANDATORY: Rule #3 - No ternary operators, using Optional pattern
+     */
     private double assessTimeRisk(long timestamp) {
         long currentTime = System.currentTimeMillis();
         long timeDiff = Math.abs(currentTime - timestamp);
-        
-        // Request too old or in future
-        return timeDiff > 300000 ? 15.0 : 0.0; // 5 minutes tolerance
+
+        // Request too old or in future - 5 minutes tolerance
+        return java.util.Optional.of(timeDiff > 300000)
+            .filter(Boolean::booleanValue)
+            .map(exceeded -> 15.0)
+            .orElse(0.0);
     }
     
     private double assessRequestRisk(String requestPath) {

@@ -55,7 +55,12 @@ public record SecurityContext(
             this.requestPath = requestPath;
             return this;
         }
-        
+
+        public Builder timestamp(long timestamp) {
+            this.timestamp = timestamp;
+            return this;
+        }
+
         public SecurityContext build() {
             return new SecurityContext(userId, sessionId, ipAddress, userAgent, requestPath, timestamp);
         }

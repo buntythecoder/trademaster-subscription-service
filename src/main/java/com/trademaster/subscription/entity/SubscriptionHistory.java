@@ -1,6 +1,8 @@
 package com.trademaster.subscription.entity;
 
 import com.trademaster.subscription.enums.BillingCycle;
+import com.trademaster.subscription.enums.SubscriptionHistoryChangeType;
+import com.trademaster.subscription.enums.SubscriptionHistoryInitiatedBy;
 import com.trademaster.subscription.enums.SubscriptionStatus;
 import com.trademaster.subscription.enums.SubscriptionTier;
 import jakarta.persistence.*;
@@ -16,12 +18,14 @@ import java.util.UUID;
 
 /**
  * Subscription History Entity
- * 
+ * MANDATORY: Single Responsibility - Subscription audit trail only
+ * MANDATORY: Rule #5 - <200 lines per class
+ *
  * Maintains audit trail of all subscription changes for compliance,
  * analytics, and customer support purposes.
- * 
+ *
  * @author TradeMaster Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 @Entity
 @Table(name = "subscription_history", indexes = {
@@ -59,7 +63,7 @@ public class SubscriptionHistory {
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "change_type", nullable = false)
-    private ChangeType changeType;
+    private SubscriptionHistoryChangeType changeType;
 
     /**
      * Previous subscription tier
@@ -138,7 +142,7 @@ public class SubscriptionHistory {
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "initiated_by", nullable = false)
-    private InitiatedBy initiatedBy;
+    private SubscriptionHistoryInitiatedBy initiatedBy;
 
     /**
      * ID of the user/admin who made the change
@@ -176,175 +180,4 @@ public class SubscriptionHistory {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    /**
-     * Change types for subscription history
-     */
-    public enum ChangeType {
-        CREATED("Subscription Created"),
-        ACTIVATED("Subscription Activated"),
-        UPGRADED("Tier Upgraded"),
-        DOWNGRADED("Tier Downgraded"),
-        BILLING_CYCLE_CHANGED("Billing Cycle Changed"),
-        SUSPENDED("Subscription Suspended"),
-        CANCELLED("Subscription Cancelled"),
-        TERMINATED("Subscription Terminated"),
-        REACTIVATED("Subscription Reactivated"),
-        PAUSED("Subscription Paused"),
-        RESUMED("Subscription Resumed"),
-        TRIAL_STARTED("Trial Started"),
-        TRIAL_ENDED("Trial Ended"),
-        PAYMENT_FAILED("Payment Failed"),
-        PAYMENT_SUCCEEDED("Payment Succeeded"),
-        AUTO_RENEWAL_ENABLED("Auto-Renewal Enabled"),
-        AUTO_RENEWAL_DISABLED("Auto-Renewal Disabled"),
-        PRICE_CHANGED("Price Changed"),
-        PROMOTION_APPLIED("Promotion Applied"),
-        PROMOTION_REMOVED("Promotion Removed");
-
-        private final String description;
-
-        ChangeType(String description) {
-            this.description = description;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-    }
-
-    /**
-     * Who initiated the change
-     */
-    public enum InitiatedBy {
-        USER("User Action"),
-        SYSTEM("System Automated"),
-        ADMIN("Administrator"),
-        PAYMENT_GATEWAY("Payment Gateway"),
-        SCHEDULED_TASK("Scheduled Task");
-
-        private final String description;
-
-        InitiatedBy(String description) {
-            this.description = description;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-    }
-
-    // Business Logic Methods
-
-    /**
-     * Check if this was a tier upgrade
-     */
-    public boolean isUpgrade() {
-        return changeType == ChangeType.UPGRADED ||
-               (oldTier != null && newTier != null && oldTier.ordinal() < newTier.ordinal());
-    }
-
-    /**
-     * Check if this was a tier downgrade
-     */
-    public boolean isDowngrade() {
-        return changeType == ChangeType.DOWNGRADED ||
-               (oldTier != null && newTier != null && oldTier.ordinal() > newTier.ordinal());
-    }
-
-    /**
-     * Check if this was a billing cycle change
-     */
-    public boolean isBillingCycleChange() {
-        return changeType == ChangeType.BILLING_CYCLE_CHANGED ||
-               (oldBillingCycle != null && newBillingCycle != null && 
-                oldBillingCycle != newBillingCycle);
-    }
-
-    /**
-     * Check if this was a price change
-     */
-    public boolean isPriceChange() {
-        return changeType == ChangeType.PRICE_CHANGED ||
-               (oldBillingAmount != null && newBillingAmount != null &&
-                oldBillingAmount.compareTo(newBillingAmount) != 0);
-    }
-
-    /**
-     * Calculate revenue impact of this change
-     */
-    public BigDecimal getRevenueImpact() {
-        if (newBillingAmount != null && oldBillingAmount != null) {
-            return newBillingAmount.subtract(oldBillingAmount);
-        }
-        return BigDecimal.ZERO;
-    }
-
-    /**
-     * Check if this change affects billing
-     */
-    public boolean affectsBilling() {
-        return changeType == ChangeType.UPGRADED ||
-               changeType == ChangeType.DOWNGRADED ||
-               changeType == ChangeType.BILLING_CYCLE_CHANGED ||
-               changeType == ChangeType.PRICE_CHANGED ||
-               changeType == ChangeType.PROMOTION_APPLIED ||
-               changeType == ChangeType.PROMOTION_REMOVED;
-    }
-
-    /**
-     * Check if this is a cancellation event
-     */
-    public boolean isCancellation() {
-        return changeType == ChangeType.CANCELLED ||
-               changeType == ChangeType.TERMINATED ||
-               (newStatus != null && (newStatus == SubscriptionStatus.CANCELLED || 
-                                    newStatus == SubscriptionStatus.TERMINATED));
-    }
-
-    /**
-     * Check if this is a reactivation event
-     */
-    public boolean isReactivation() {
-        return changeType == ChangeType.REACTIVATED ||
-               changeType == ChangeType.RESUMED ||
-               (oldStatus != null && newStatus != null &&
-                !oldStatus.hasAccess() && newStatus.hasAccess());
-    }
-
-    /**
-     * Get human-readable description of the change
-     */
-    public String getChangeDescription() {
-        StringBuilder description = new StringBuilder();
-        
-        switch (changeType) {
-            case UPGRADED:
-                description.append("Upgraded from ")
-                          .append(oldTier != null ? oldTier.getDisplayName() : "Unknown")
-                          .append(" to ")
-                          .append(newTier != null ? newTier.getDisplayName() : "Unknown");
-                break;
-            case DOWNGRADED:
-                description.append("Downgraded from ")
-                          .append(oldTier != null ? oldTier.getDisplayName() : "Unknown")
-                          .append(" to ")
-                          .append(newTier != null ? newTier.getDisplayName() : "Unknown");
-                break;
-            case BILLING_CYCLE_CHANGED:
-                description.append("Changed billing cycle from ")
-                          .append(oldBillingCycle != null ? oldBillingCycle.getDisplayName() : "Unknown")
-                          .append(" to ")
-                          .append(newBillingCycle != null ? newBillingCycle.getDisplayName() : "Unknown");
-                break;
-            default:
-                description.append(changeType.getDescription());
-        }
-        
-        if (changeReason != null && !changeReason.trim().isEmpty()) {
-            description.append(" - ").append(changeReason);
-        }
-        
-        return description.toString();
-    }
 }

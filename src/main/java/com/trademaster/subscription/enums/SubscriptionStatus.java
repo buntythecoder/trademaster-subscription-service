@@ -150,13 +150,10 @@ public enum SubscriptionStatus {
     
     /**
      * Check if transition to target status is valid
+     * MANDATORY: Rule #3 - No loops, using Stream API
      */
     public boolean canTransitionTo(SubscriptionStatus targetStatus) {
-        for (SubscriptionStatus validStatus : getValidTransitions()) {
-            if (validStatus == targetStatus) {
-                return true;
-            }
-        }
-        return false;
+        return java.util.Arrays.stream(getValidTransitions())
+            .anyMatch(validStatus -> validStatus == targetStatus);
     }
 }

@@ -43,21 +43,35 @@ spring:
       discovery:
         enabled: true
         register: true
+        deregister: true
+        # Production hostname override - use environment variable in production
+        hostname: ${CONSUL_INSTANCE_HOSTNAME:localhost}
+        # Scheme configuration - use HTTPS in production
+        scheme: ${CONSUL_SCHEME:http}
+        # Health check configuration
         health-check-path: /actuator/health
         health-check-interval: 30s
         health-check-timeout: 10s
         health-check-critical-timeout: 300s
-        health-check-url: http://${CONSUL_INSTANCE_HOSTNAME:localhost}:${MANAGEMENT_SERVER_PORT:9085}/actuator/health
+        health-check-url: ${CONSUL_SCHEME:http}://${CONSUL_INSTANCE_HOSTNAME:localhost}:${MANAGEMENT_SERVER_PORT:9085}/actuator/health
+        # TLS configuration for health checks
+        health-check-tls-skip-verify: ${CONSUL_HEALTH_CHECK_TLS_SKIP:true}
+        # Enable health check registration
+        register-health-check: true
+        # Service registration settings
         instance-id: ${spring.application.name}:${server.port}:${random.uuid}
-        hostname: ${CONSUL_INSTANCE_HOSTNAME:localhost}
         port: ${server.port}
         service-name: ${spring.application.name}
+        fail-fast: false
+        prefer-ip-address: true
+        # Basic tags (enhanced by ConsulConfig BeanPostProcessor with 23+ tags)
         tags:
           - subscription-capabilities=BILLING,TRIAL,UPGRADE,NOTIFICATIONS
           - api-version=v1
           - kong-upstream=subscription-service
           - internal-api=/api/internal/v1/subscription
           - external-api=/api/v1/subscription
+        # Basic metadata (enhanced by ConsulConfig BeanPostProcessor with 18+ entries)
         metadata:
           version: ${app.version:1.0.0}
           description: "TradeMaster Subscription Management Service"
@@ -196,12 +210,101 @@ logging:
 springdoc:
   api-docs:
     path: /v3/api-docs
+    enabled: true
   swagger-ui:
     path: /swagger-ui.html
+    enabled: true
+    display-request-duration: true
+    tags-sorter: alpha
+    operations-sorter: alpha
+
+# MANDATORY: Rule #25 - Circuit Breaker Configuration (Resilience4j)
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        register-health-indicator: true
+        sliding-window-size: 100
+        minimum-number-of-calls: 10
+        permitted-number-of-calls-in-half-open-state: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 60s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+        record-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.client.ResourceAccessException
+    instances:
+      payment-service:
+        base-config: default
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 60s
+        sliding-window-size: 15
+        minimum-number-of-calls: 8
+      notification-service:
+        base-config: default
+        failure-rate-threshold: 40
+        wait-duration-in-open-state: 45s
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+      database-service:
+        base-config: default
+        failure-rate-threshold: 30
+        wait-duration-in-open-state: 120s
+        sliding-window-size: 25
+        minimum-number-of-calls: 5
+      subscription-service:
+        base-config: default
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+    instances:
+      payment-service:
+        base-config: default
+        max-attempts: 3
+      notification-service:
+        base-config: default
+        max-attempts: 2
+
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 30s
+        cancel-running-future: true
+    instances:
+      payment-service:
+        timeout-duration: 10s
+      notification-service:
+        timeout-duration: 5s
+
+  bulkhead:
+    configs:
+      default:
+        max-concurrent-calls: 100
+        max-wait-duration: 500ms
+    instances:
+      payment-service:
+        max-concurrent-calls: 50
+      notification-service:
+        max-concurrent-calls: 100
 
 # Application Configuration
+# Application Version Configuration (production override via APP_VERSION env var)
 app:
-  version: "1.0.0"
+  version: ${APP_VERSION:1.0.0}
   subscription:
     trial-period-days: 14
     grace-period-days: 7
@@ -223,6 +326,109 @@ trademaster:
     service:
       enabled: true
       api-key: ${SUBSCRIPTION_SERVICE_API_KEY:subscription-service-api-key-dev}
+  # Consul Configuration
+  consul:
+    datacenter: ${CONSUL_DATACENTER:trademaster-dc}
+  # Internal Service Client Timeouts Configuration
+  internal-service:
+    timeout:
+      connect-seconds: 5   # Connection timeout in seconds
+      write-seconds: 10    # Write timeout in seconds
+      read-seconds: 30     # Read timeout in seconds
+
+  # MANDATORY: Rule #16 - Dynamic Configuration (ALL subscription tier config externalized)
+  subscription:
+    tiers:
+      free:
+        display-name: "Free"
+        description: "Basic trading platform access for retail traders"
+        pricing:
+          monthly: 0
+          quarterly: 0
+          annual: 0
+        limits:
+          max-watchlists: 5
+          max-alerts: 10
+          api-calls-per-day: 1000
+          max-portfolios: 3
+          ai-analysis-per-month: 0
+          max-sub-accounts: 0
+          max-custom-indicators: 0
+          data-retention-days: 30
+          max-websocket-connections: 1
+        features:
+          - "Basic Analytics"
+          - "Limited API Access"
+          - "Email Support"
+
+      pro:
+        display-name: "Pro"
+        description: "Advanced features for active traders"
+        pricing:
+          monthly: 99
+          quarterly: 267  # 10% discount
+          annual: 950     # 20% discount
+        limits:
+          max-watchlists: 25
+          max-alerts: 100
+          api-calls-per-day: 10000
+          max-portfolios: 10
+          ai-analysis-per-month: 0
+          max-sub-accounts: 3
+          max-custom-indicators: 5
+          data-retention-days: 90
+          max-websocket-connections: 5
+        features:
+          - "Advanced Analytics"
+          - "Full API Access"
+          - "Data Export"
+          - "Priority Support"
+
+      ai_premium:
+        display-name: "AI Premium"
+        description: "AI-powered insights and advanced analytics"
+        pricing:
+          monthly: 299
+          quarterly: 807   # 10% discount
+          annual: 2870     # 20% discount
+        limits:
+          max-watchlists: 100
+          max-alerts: 500
+          api-calls-per-day: 50000
+          max-portfolios: 50
+          ai-analysis-per-month: 1000
+          max-sub-accounts: 10
+          max-custom-indicators: 20
+          data-retention-days: 365
+          max-websocket-connections: 25
+        features:
+          - "All PRO Features"
+          - "AI Insights"
+          - "Custom Algorithms"
+          - "Real-time Alerts"
+
+      institutional:
+        display-name: "Institutional"
+        description: "Enterprise-grade solutions for institutional clients"
+        pricing:
+          monthly: 2500
+          quarterly: 6750  # 10% discount
+          annual: 24000    # 20% discount
+        limits:
+          max-watchlists: -1
+          max-alerts: -1
+          api-calls-per-day: -1
+          max-portfolios: -1
+          ai-analysis-per-month: -1
+          max-sub-accounts: -1
+          max-custom-indicators: -1
+          data-retention-days: -1
+          max-websocket-connections: -1
+        features:
+          - "All Features"
+          - "Unlimited Usage"
+          - "Dedicated Support"
+          - "Custom Integrations"
 
 ---
 # Docker Profile - Override Redis configuration for Docker environment

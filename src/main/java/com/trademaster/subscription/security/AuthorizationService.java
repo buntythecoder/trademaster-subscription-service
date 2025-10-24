@@ -36,13 +36,15 @@ public class AuthorizationService {
     
     private PermissionResult checkPermissions(
             AuthenticationService.AuthResult authResult, SecurityContext context) {
-        
-        // Mock implementation - real implementation would check roles/permissions
-        return switch (context.requestPath()) {
-            case String path when path.contains("/subscriptions") -> PermissionResult.GRANTED;
-            case String path when path.contains("/admin") -> PermissionResult.INSUFFICIENT_PERMISSIONS;
-            default -> PermissionResult.GRANTED;
-        };
+
+        // Use Optional pattern to handle null paths (Rule #3 - no if-else)
+        return java.util.Optional.ofNullable(context.requestPath())
+            .map(path -> switch (path) {
+                case String p when p.contains("/subscriptions") -> PermissionResult.GRANTED;
+                case String p when p.contains("/admin") -> PermissionResult.INSUFFICIENT_PERMISSIONS;
+                default -> PermissionResult.GRANTED;
+            })
+            .orElse(PermissionResult.GRANTED);  // Default for null paths
     }
     
     private enum PermissionResult {

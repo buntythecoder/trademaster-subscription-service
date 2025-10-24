@@ -112,13 +112,12 @@ public enum BillingCycle {
     
     /**
      * Get the recommended billing cycle based on savings threshold
+     * MANDATORY: Rule #3 - No if-else, using Stream API
      */
     public static BillingCycle getRecommendedCycle(double savingsThreshold) {
-        if (ANNUAL.getDiscountPercentage() >= savingsThreshold) {
-            return ANNUAL;
-        } else if (QUARTERLY.getDiscountPercentage() >= savingsThreshold) {
-            return QUARTERLY;
-        }
-        return MONTHLY;
+        return java.util.Arrays.stream(values())
+            .filter(cycle -> cycle.getDiscountPercentage() >= savingsThreshold)
+            .max(java.util.Comparator.comparingDouble(BillingCycle::getDiscountPercentage))
+            .orElse(MONTHLY);
     }
 }

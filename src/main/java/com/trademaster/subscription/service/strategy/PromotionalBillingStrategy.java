@@ -1,5 +1,6 @@
 package com.trademaster.subscription.service.strategy;
 
+import com.trademaster.subscription.constants.PricingConstants;
 import com.trademaster.subscription.enums.BillingCycle;
 import com.trademaster.subscription.enums.SubscriptionTier;
 import org.springframework.stereotype.Component;
@@ -19,7 +20,7 @@ import java.math.RoundingMode;
 @Component("promotionalBillingStrategy")
 public class PromotionalBillingStrategy implements BillingCalculationStrategy {
 
-    private static final BigDecimal PROMOTIONAL_DISCOUNT = new BigDecimal("0.20"); // 20% discount
+    private static final BigDecimal PROMOTIONAL_DISCOUNT = PricingConstants.PROMOTIONAL_DISCOUNT_PERCENT;
 
     @Override
     public BigDecimal calculateAmount(SubscriptionTier tier, BillingCycle cycle) {
@@ -35,27 +36,27 @@ public class PromotionalBillingStrategy implements BillingCalculationStrategy {
     private BigDecimal calculateBaseMonthlyAmount(SubscriptionTier tier) {
         return switch (tier) {
             case FREE -> BigDecimal.ZERO;
-            case PRO -> new BigDecimal("29.99");
-            case AI_PREMIUM -> new BigDecimal("99.99");
-            case INSTITUTIONAL -> new BigDecimal("299.99");
+            case PRO -> PricingConstants.PRO_MONTHLY_PRICE;
+            case AI_PREMIUM -> PricingConstants.AI_PREMIUM_MONTHLY_PRICE;
+            case INSTITUTIONAL -> PricingConstants.INSTITUTIONAL_MONTHLY_PRICE;
         };
     }
     
     private BigDecimal calculateBaseQuarterlyAmount(SubscriptionTier tier) {
         return switch (tier) {
             case FREE -> BigDecimal.ZERO;
-            case PRO -> new BigDecimal("79.99");
-            case AI_PREMIUM -> new BigDecimal("269.99");
-            case INSTITUTIONAL -> new BigDecimal("809.99");
+            case PRO -> PricingConstants.PRO_QUARTERLY_PRICE;
+            case AI_PREMIUM -> PricingConstants.AI_PREMIUM_QUARTERLY_PRICE;
+            case INSTITUTIONAL -> PricingConstants.INSTITUTIONAL_QUARTERLY_PRICE;
         };
     }
     
     private BigDecimal calculateBaseAnnualAmount(SubscriptionTier tier) {
         return switch (tier) {
             case FREE -> BigDecimal.ZERO;
-            case PRO -> new BigDecimal("299.99");
-            case AI_PREMIUM -> new BigDecimal("999.99");
-            case INSTITUTIONAL -> new BigDecimal("2999.99");
+            case PRO -> PricingConstants.PRO_ANNUAL_PRICE;
+            case AI_PREMIUM -> PricingConstants.AI_PREMIUM_ANNUAL_PRICE;
+            case INSTITUTIONAL -> PricingConstants.INSTITUTIONAL_ANNUAL_PRICE;
         };
     }
     

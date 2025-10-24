@@ -1,5 +1,6 @@
 package com.trademaster.subscription.dto;
 
+import com.trademaster.subscription.constants.FeatureNameConstants;
 import com.trademaster.subscription.entity.Subscription;
 import com.trademaster.subscription.enums.BillingCycle;
 import com.trademaster.subscription.enums.SubscriptionStatus;
@@ -80,6 +81,20 @@ public record SubscriptionResponse(
             canCancel(subscription),
             subscription.getCreatedAt(),
             subscription.getUpdatedAt()
+        );
+    }
+
+    /**
+     * Factory method to create error response
+     * MANDATORY: Rule #6 - Zero Trust Security error handling
+     */
+    public static SubscriptionResponse error(String errorMessage) {
+        return new SubscriptionResponse(
+            null, null, null, null, null,
+            null, null, null, null, null,
+            null, null, null, null, null,
+            List.of(errorMessage), null, null, null,
+            false, false, false, false, null, null
         );
     }
     
@@ -170,10 +185,10 @@ public record SubscriptionResponse(
          */
         public boolean isUnlimited(String feature) {
             return switch (feature.toLowerCase()) {
-                case "watchlists" -> maxWatchlists == -1;
-                case "alerts" -> maxAlerts == -1;
-                case "api_calls" -> apiCallsPerDay == -1;
-                case "portfolios" -> maxPortfolios == -1;
+                case FeatureNameConstants.WATCHLISTS -> maxWatchlists == -1;
+                case FeatureNameConstants.ALERTS -> maxAlerts == -1;
+                case FeatureNameConstants.API_CALLS -> apiCallsPerDay == -1;
+                case FeatureNameConstants.PORTFOLIOS -> maxPortfolios == -1;
                 case "ai_analysis" -> aiAnalysisPerMonth == -1;
                 case "sub_accounts" -> maxSubAccounts == -1;
                 case "custom_indicators" -> maxCustomIndicators == -1;

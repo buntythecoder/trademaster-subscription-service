@@ -1,6 +1,8 @@
 package com.trademaster.subscription.integration;
 
 import com.trademaster.subscription.common.Result;
+import com.trademaster.subscription.constants.SubscriptionEventConstants;
+import com.trademaster.subscription.constants.TemplateNameConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,13 +47,13 @@ public class NotificationServiceClient {
         
         NotificationRequest request = new NotificationRequest(
             userId,
-            "SUBSCRIPTION_ACTIVATED",
+            SubscriptionEventConstants.SUBSCRIPTION_ACTIVATED,
             "Your TradeMaster subscription has been activated",
             "Congratulations! Your " + planName + " subscription is now active.",
             Map.of(
                 "subscriptionTier", subscriptionTier,
                 "planName", planName,
-                "template", "subscription_activated"
+                "template", TemplateNameConstants.SUBSCRIPTION_ACTIVATED
             )
         );
         
@@ -66,14 +68,14 @@ public class NotificationServiceClient {
         
         NotificationRequest request = new NotificationRequest(
             userId,
-            "SUBSCRIPTION_CANCELLED",
+            SubscriptionEventConstants.SUBSCRIPTION_CANCELLED,
             "Your TradeMaster subscription has been cancelled",
-            "Your subscription has been cancelled. " + 
+            "Your subscription has been cancelled. " +
             (cancellationReason != null ? "Reason: " + cancellationReason : ""),
             Map.of(
                 "subscriptionTier", subscriptionTier,
                 "cancellationReason", cancellationReason != null ? cancellationReason : "",
-                "template", "subscription_cancelled"
+                "template", TemplateNameConstants.SUBSCRIPTION_CANCELLED
             )
         );
         
@@ -95,7 +97,7 @@ public class NotificationServiceClient {
                 "subscriptionTier", subscriptionTier,
                 "failedAttempts", String.valueOf(failedAttempts),
                 "nextRetryDate", nextRetryDate,
-                "template", "billing_failure"
+                "template", TemplateNameConstants.BILLING_FAILURE
             )
         );
         
@@ -110,13 +112,13 @@ public class NotificationServiceClient {
         
         NotificationRequest request = new NotificationRequest(
             userId,
-            "SUBSCRIPTION_UPGRADED",
+            SubscriptionEventConstants.SUBSCRIPTION_UPGRADED,
             "Your TradeMaster subscription has been upgraded",
             "Great news! Your subscription has been upgraded from " + oldTier + " to " + newTier + ".",
             Map.of(
                 "oldTier", oldTier,
                 "newTier", newTier,
-                "template", "subscription_upgraded"
+                "template", TemplateNameConstants.SUBSCRIPTION_UPGRADED
             )
         );
         

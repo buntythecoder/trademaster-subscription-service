@@ -1,0 +1,12 @@
+src/main/java/com/trademaster/subscription/service/ErrorTrackingService.java:99:                if (userId != null) {
+src/main/java/com/trademaster/subscription/service/ErrorTrackingService.java:106:                if (isCriticalError(errorType, throwable)) {
+src/main/java/com/trademaster/subscription/service/ErrorTrackingService.java:221:        if (throwable == null) {
+src/main/java/com/trademaster/subscription/service/ErrorTrackingService.java:239:        if (throwable != null) {
+src/main/java/com/trademaster/subscription/service/StructuredLoggingService.java:51:        if (userId != null) MDC.put(USER_ID, userId);
+src/main/java/com/trademaster/subscription/service/StructuredLoggingService.java:52:        if (sessionId != null) MDC.put(SESSION_ID, sessionId);
+src/main/java/com/trademaster/subscription/service/StructuredLoggingService.java:53:        if (ipAddress != null) MDC.put(IP_ADDRESS, ipAddress);
+src/main/java/com/trademaster/subscription/service/StructuredLoggingService.java:54:        if (userAgent != null) MDC.put(USER_AGENT, userAgent);
+src/main/java/com/trademaster/subscription/service/StructuredLoggingService.java:61:        if (subscriptionId != null) MDC.put(SUBSCRIPTION_ID, subscriptionId);
+src/main/java/com/trademaster/subscription/service/StructuredLoggingService.java:62:        if (transactionId != null) MDC.put(TRANSACTION_ID, transactionId);
+src/main/java/com/trademaster/subscription/service/SubscriptionLifecycleService.java:508:                    if (!subscriptionRepository.existsById(subscriptionId)) {
+src/main/java/com/trademaster/subscription/service/SubscriptionLifecycleService.java:527:                    if (subscriptionOpt.isEmpty()) {

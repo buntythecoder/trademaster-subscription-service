@@ -1,165 +1,124 @@
 package com.trademaster.subscription.enums;
 
+import com.trademaster.subscription.config.SubscriptionTierConfig;
+import com.trademaster.subscription.constants.FeatureNameConstants;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Subscription Tier Enumeration
- * 
- * Defines the different subscription tiers available in TradeMaster
- * with their pricing, features, and usage limits.
- * 
+ * MANDATORY: Rule #16 - Dynamic Configuration (ALL values externalized)
+ *
+ * Defines the different subscription tiers available in TradeMaster.
+ * All pricing, features, and limits are loaded from application.yml.
+ *
  * @author TradeMaster Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 @Getter
-@RequiredArgsConstructor
 public enum SubscriptionTier {
-    
-    FREE("Free", BigDecimal.ZERO, "Basic market data access") {
-        @Override
-        public List<String> getFeatures() {
-            return List.of(
-                "Basic market data",
-                "5 watchlists",
-                "Basic charts",
-                "Community support"
-            );
-        }
-        
-        @Override
-        public SubscriptionLimits getLimits() {
-            return SubscriptionLimits.builder()
-                .maxWatchlists(5)
-                .maxAlerts(10)
-                .apiCallsPerDay(100)
-                .maxPortfolios(1)
-                .build();
-        }
-    },
-    
-    PRO("Pro", new BigDecimal("999"), "Real-time data and advanced analytics") {
-        @Override
-        public List<String> getFeatures() {
-            return List.of(
-                "Real-time market data",
-                "Unlimited watchlists",
-                "Advanced charts with 50+ indicators",
-                "Portfolio analytics",
-                "Basic alerts and notifications",
-                "Export capabilities",
-                "Priority email support"
-            );
-        }
-        
-        @Override
-        public SubscriptionLimits getLimits() {
-            return SubscriptionLimits.builder()
-                .maxWatchlists(-1) // Unlimited
-                .maxAlerts(100)
-                .apiCallsPerDay(10000)
-                .maxPortfolios(5)
-                .build();
-        }
-    },
-    
-    AI_PREMIUM("AI Premium", new BigDecimal("2999"), "AI-powered trading insights and behavioral analytics") {
-        @Override
-        public List<String> getFeatures() {
-            return List.of(
-                "All Pro features",
-                "Behavioral AI insights",
-                "Trading psychology analytics",
-                "Emotion tracking and coaching",
-                "AI-powered recommendations",
-                "Advanced risk management",
-                "Backtesting capabilities",
-                "Phone and chat support"
-            );
-        }
-        
-        @Override
-        public SubscriptionLimits getLimits() {
-            return SubscriptionLimits.builder()
-                .maxWatchlists(-1)
-                .maxAlerts(500)
-                .apiCallsPerDay(50000)
-                .maxPortfolios(20)
-                .aiAnalysisPerMonth(1000)
-                .build();
-        }
-    },
-    
-    INSTITUTIONAL("Institutional", new BigDecimal("25000"), "Enterprise-grade features for institutions") {
-        @Override
-        public List<String> getFeatures() {
-            return List.of(
-                "All AI Premium features",
-                "Multi-user account management",
-                "Custom API integrations",
-                "Advanced analytics suite",
-                "Risk management tools",
-                "Compliance reporting",
-                "White-label options",
-                "Dedicated account manager",
-                "24/7 priority support"
-            );
-        }
-        
-        @Override
-        public SubscriptionLimits getLimits() {
-            return SubscriptionLimits.builder()
-                .maxWatchlists(-1)
-                .maxAlerts(-1)
-                .apiCallsPerDay(-1) // Unlimited
-                .maxPortfolios(-1)
-                .aiAnalysisPerMonth(-1)
-                .maxSubAccounts(100)
-                .build();
-        }
-    };
-    
-    private final String displayName;
-    private final BigDecimal monthlyPrice;
-    private final String description;
-    
+
+    FREE,
+    PRO,
+    AI_PREMIUM,
+    INSTITUTIONAL;
+
     /**
-     * Get the features available for this subscription tier
+     * Static configuration holder - initialized by SubscriptionTierConfigInitializer
+     * MANDATORY: Rule #16 - All configuration externalized to application.yml
      */
-    public abstract List<String> getFeatures();
-    
+    private static Map<SubscriptionTier, SubscriptionTierConfig.TierConfig> configMap;
+
     /**
-     * Get the usage limits for this subscription tier
+     * Initialize configuration from Spring-managed SubscriptionTierConfig
+     * MANDATORY: Called by SubscriptionTierConfigInitializer @PostConstruct
      */
-    public abstract SubscriptionLimits getLimits();
-    
+    public static void initializeConfiguration(SubscriptionTierConfig tierConfig) {
+        configMap = new EnumMap<>(SubscriptionTier.class);
+
+        configMap.put(FREE, tierConfig.getTierConfig("free"));
+        configMap.put(PRO, tierConfig.getTierConfig("pro"));
+        configMap.put(AI_PREMIUM, tierConfig.getTierConfig("ai_premium"));
+        configMap.put(INSTITUTIONAL, tierConfig.getTierConfig("institutional"));
+    }
+
     /**
-     * Get quarterly price with discount
+     * Get tier configuration
+     * MANDATORY: Rule #16 - All values from externalized config
+     */
+    private SubscriptionTierConfig.TierConfig getConfig() {
+        return java.util.Optional.ofNullable(configMap)
+            .map(map -> map.get(this))
+            .orElseThrow(() -> new IllegalStateException(
+                "Tier configuration not initialized. Ensure SubscriptionTierConfigInitializer ran."
+            ));
+    }
+
+    /**
+     * Get display name for this tier
+     */
+    public String getDisplayName() {
+        return getConfig().getDisplayName();
+    }
+
+    /**
+     * Get description for this tier
+     */
+    public String getDescription() {
+        return getConfig().getDescription();
+    }
+
+    /**
+     * Get monthly price for this tier
+     */
+    public BigDecimal getMonthlyPrice() {
+        return getConfig().getPricing().getMonthly();
+    }
+
+    /**
+     * Get quarterly price for this tier
      */
     public BigDecimal getQuarterlyPrice() {
-        return switch (this) {
-            case FREE -> BigDecimal.ZERO;
-            case PRO -> new BigDecimal("2799"); // 6% discount
-            case AI_PREMIUM -> new BigDecimal("8099"); // 10% discount
-            case INSTITUTIONAL -> new BigDecimal("67500"); // 10% discount
-        };
+        return getConfig().getPricing().getQuarterly();
     }
-    
+
     /**
-     * Get annual price with discount
+     * Get annual price for this tier
      */
     public BigDecimal getAnnualPrice() {
-        return switch (this) {
-            case FREE -> BigDecimal.ZERO;
-            case PRO -> new BigDecimal("9999"); // 17% discount
-            case AI_PREMIUM -> new BigDecimal("29999"); // 17% discount
-            case INSTITUTIONAL -> new BigDecimal("250000"); // 17% discount
-        };
+        return getConfig().getPricing().getAnnual();
     }
-    
+
+    /**
+     * Get features available for this tier
+     */
+    public List<String> getFeatures() {
+        return getConfig().getFeatures();
+    }
+
+    /**
+     * Get usage limits for this tier
+     */
+    public SubscriptionLimits getLimits() {
+        SubscriptionTierConfig.LimitsConfig limits = getConfig().getLimits();
+
+        return SubscriptionLimits.builder()
+            .maxWatchlists(limits.getMaxWatchlists())
+            .maxAlerts(limits.getMaxAlerts())
+            .apiCallsPerDay(limits.getApiCallsPerDay())
+            .maxPortfolios(limits.getMaxPortfolios())
+            .aiAnalysisPerMonth(limits.getAiAnalysisPerMonth())
+            .maxSubAccounts(limits.getMaxSubAccounts())
+            .maxCustomIndicators(limits.getMaxCustomIndicators())
+            .dataRetentionDays(limits.getDataRetentionDays())
+            .maxWebSocketConnections(limits.getMaxWebSocketConnections())
+            .build();
+    }
+
     /**
      * Check if this tier has a specific feature
      */
@@ -167,49 +126,51 @@ public enum SubscriptionTier {
         return getFeatures().stream()
             .anyMatch(f -> f.toLowerCase().contains(feature.toLowerCase()));
     }
-    
+
     /**
      * Check if this tier supports unlimited usage for a specific feature
+     * MANDATORY: Rule #3 - No if-else, using pattern matching
      */
     public boolean hasUnlimitedUsage(String feature) {
         return switch (feature.toLowerCase()) {
-            case "watchlists" -> getLimits().getMaxWatchlists() == -1;
-            case "alerts" -> getLimits().getMaxAlerts() == -1;
-            case "api_calls" -> getLimits().getApiCallsPerDay() == -1;
-            case "portfolios" -> getLimits().getMaxPortfolios() == -1;
+            case FeatureNameConstants.WATCHLISTS -> getLimits().getMaxWatchlists() == -1;
+            case FeatureNameConstants.ALERTS -> getLimits().getMaxAlerts() == -1;
+            case FeatureNameConstants.API_CALLS -> getLimits().getApiCallsPerDay() == -1;
+            case FeatureNameConstants.PORTFOLIOS -> getLimits().getMaxPortfolios() == -1;
             case "ai_analysis" -> getLimits().getAiAnalysisPerMonth() == -1;
             default -> false;
         };
     }
-    
+
     /**
      * Get usage limit for a specific feature
+     * MANDATORY: Rule #3 - No if-else, using pattern matching
      */
     public Long getUsageLimit(String feature) {
         return switch (feature.toLowerCase()) {
-            case "watchlists" -> Long.valueOf(getLimits().getMaxWatchlists());
-            case "alerts" -> Long.valueOf(getLimits().getMaxAlerts());
-            case "api_calls" -> Long.valueOf(getLimits().getApiCallsPerDay());
-            case "portfolios" -> Long.valueOf(getLimits().getMaxPortfolios());
+            case FeatureNameConstants.WATCHLISTS -> Long.valueOf(getLimits().getMaxWatchlists());
+            case FeatureNameConstants.ALERTS -> Long.valueOf(getLimits().getMaxAlerts());
+            case FeatureNameConstants.API_CALLS -> Long.valueOf(getLimits().getApiCallsPerDay());
+            case FeatureNameConstants.PORTFOLIOS -> Long.valueOf(getLimits().getMaxPortfolios());
             case "ai_analysis" -> Long.valueOf(getLimits().getAiAnalysisPerMonth());
             default -> 0L;
         };
     }
-    
+
     /**
      * Check if this tier can be upgraded to another tier
      */
     public boolean canUpgradeTo(SubscriptionTier targetTier) {
         return this.ordinal() < targetTier.ordinal();
     }
-    
+
     /**
      * Check if this tier can be downgraded to another tier
      */
     public boolean canDowngradeTo(SubscriptionTier targetTier) {
         return this.ordinal() > targetTier.ordinal();
     }
-    
+
     /**
      * Get the next higher tier
      */
@@ -218,7 +179,7 @@ public enum SubscriptionTier {
         int currentIndex = this.ordinal();
         return currentIndex < tiers.length - 1 ? tiers[currentIndex + 1] : this;
     }
-    
+
     /**
      * Get the previous lower tier
      */

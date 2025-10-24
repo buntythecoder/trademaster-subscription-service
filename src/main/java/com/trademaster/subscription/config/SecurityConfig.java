@@ -148,17 +148,21 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Allow specific origins in production - use environment variable
+        // MANDATORY: Rule #3 - No if-else, using Optional pattern
         String allowedOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
-        if (allowedOrigins != null && !allowedOrigins.isBlank()) {
-            configuration.setAllowedOrigins(List.of(allowedOrigins.split(",")));
-        } else {
-            // Development configuration
-            configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost:*",
-                "https://localhost:*",
-                "https://*.trademaster.com"
-            ));
-        }
+        java.util.Optional.ofNullable(allowedOrigins)
+            .filter(origins -> !origins.isBlank())
+            .ifPresentOrElse(
+                origins -> configuration.setAllowedOrigins(List.of(origins.split(","))),
+                () -> {
+                    // Development configuration
+                    configuration.setAllowedOriginPatterns(List.of(
+                        "http://localhost:*",
+                        "https://localhost:*",
+                        "https://*.trademaster.com"
+                    ));
+                }
+            );
         
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));

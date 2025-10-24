@@ -1,6 +1,7 @@
 package com.trademaster.subscription.repository;
 
 import com.trademaster.subscription.entity.SubscriptionHistory;
+import com.trademaster.subscription.enums.SubscriptionHistoryChangeType;
 import com.trademaster.subscription.enums.SubscriptionTier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,7 +39,7 @@ public interface SubscriptionHistoryRepository extends JpaRepository<Subscriptio
     /**
      * Find history by change type
      */
-    List<SubscriptionHistory> findByChangeTypeOrderByCreatedAtDesc(SubscriptionHistory.ChangeType changeType);
+    List<SubscriptionHistory> findByChangeTypeOrderByCreatedAtDesc(SubscriptionHistoryChangeType changeType);
 
     /**
      * Find history in date range
@@ -199,7 +200,7 @@ public interface SubscriptionHistoryRepository extends JpaRepository<Subscriptio
            "ORDER BY sh.createdAt DESC")
     Page<SubscriptionHistory> findForDashboard(@Param("subscriptionId") UUID subscriptionId,
                                               @Param("userId") UUID userId,
-                                              @Param("changeType") SubscriptionHistory.ChangeType changeType,
+                                              @Param("changeType") SubscriptionHistoryChangeType changeType,
                                               @Param("startDate") LocalDateTime startDate,
                                               @Param("endDate") LocalDateTime endDate,
                                               Pageable pageable);

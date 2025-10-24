@@ -1,5 +1,6 @@
 package com.trademaster.subscription.enums;
 
+import com.trademaster.subscription.constants.FeatureNameConstants;
 import lombok.Builder;
 import lombok.Data;
 
@@ -71,10 +72,10 @@ public class SubscriptionLimits {
      */
     public boolean isUnlimited(String feature) {
         return switch (feature.toLowerCase()) {
-            case "watchlists" -> maxWatchlists == -1;
-            case "alerts" -> maxAlerts == -1;
-            case "api_calls" -> apiCallsPerDay == -1;
-            case "portfolios" -> maxPortfolios == -1;
+            case FeatureNameConstants.WATCHLISTS -> maxWatchlists == -1;
+            case FeatureNameConstants.ALERTS -> maxAlerts == -1;
+            case FeatureNameConstants.API_CALLS -> apiCallsPerDay == -1;
+            case FeatureNameConstants.PORTFOLIOS -> maxPortfolios == -1;
             case "ai_analysis" -> aiAnalysisPerMonth == -1;
             case "sub_accounts" -> maxSubAccounts == -1;
             case "custom_indicators" -> maxCustomIndicators == -1;
@@ -88,10 +89,10 @@ public class SubscriptionLimits {
      */
     public int getLimitValue(String feature) {
         return switch (feature.toLowerCase()) {
-            case "watchlists" -> maxWatchlists;
-            case "alerts" -> maxAlerts;
-            case "api_calls" -> apiCallsPerDay;
-            case "portfolios" -> maxPortfolios;
+            case FeatureNameConstants.WATCHLISTS -> maxWatchlists;
+            case FeatureNameConstants.ALERTS -> maxAlerts;
+            case FeatureNameConstants.API_CALLS -> apiCallsPerDay;
+            case FeatureNameConstants.PORTFOLIOS -> maxPortfolios;
             case "ai_analysis" -> aiAnalysisPerMonth;
             case "sub_accounts" -> maxSubAccounts;
             case "custom_indicators" -> maxCustomIndicators;

@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -49,20 +50,22 @@ public class SecurityFacade {
     
     /**
      * Execute operation within security boundary
+     * MANDATORY: Rule #3 - No if-else, using Optional pattern
      */
     private <T> CompletableFuture<Result<T, String>> executeSecureOperation(
             Function<Void, CompletableFuture<Result<T, String>>> operation,
             SecureContext secureContext,
             String correlationId) {
-        
+
         return operation.apply(null)
-            .handle((result, throwable) -> {
-                if (throwable != null) {
-                    log.error("Secure operation failed with correlation: {}", correlationId, throwable);
-                    return Result.<T, String>failure("Operation failed: " + throwable.getMessage());
-                }
-                return result;
-            });
+            .handle((result, throwable) ->
+                Optional.ofNullable(throwable)
+                    .map(error -> {
+                        log.error("Secure operation failed with correlation: {}", correlationId, error);
+                        return Result.<T, String>failure("Operation failed: " + error.getMessage());
+                    })
+                    .orElse(result)
+            );
     }
     
     private void logSuccessfulAccess(SecurityContext context, String correlationId) {

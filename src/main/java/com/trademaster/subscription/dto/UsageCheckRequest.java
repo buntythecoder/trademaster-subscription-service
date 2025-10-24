@@ -33,13 +33,11 @@ public record UsageCheckRequest(
             default -> {}
         }
         
+        // MANDATORY: Rule #3 - No if-else, using pattern matching
         switch (featureName) {
             case null -> throw new IllegalArgumentException("Feature name is required");
-            default -> {
-                if (featureName.trim().isEmpty()) {
-                    throw new IllegalArgumentException("Feature name is required");
-                }
-            }
+            case String name when name.trim().isEmpty() -> throw new IllegalArgumentException("Feature name is required");
+            default -> {}
         }
         
         // Set defaults using pattern matching
@@ -57,9 +55,11 @@ public record UsageCheckRequest(
     
     /**
      * Check if usage should be incremented
+     * MANDATORY: Rule #3 - No compound boolean with null check, using Optional
      */
     public boolean isIncrementUsage() {
-        return incrementUsage != null && incrementUsage;
+        return java.util.Optional.ofNullable(incrementUsage)
+            .orElse(false);
     }
     
     /**

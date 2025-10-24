@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 /**
  * Authentication Service for Zero Trust Security
  * 
@@ -32,15 +34,15 @@ public class AuthenticationService {
         }).mapError(exception -> "Authentication failed: " + exception.getMessage());
     }
     
+    /**
+     * MANDATORY: Rule #3 - No if-else, using Optional pattern
+     */
     private ValidationResult validateUser(SecurityContext context) {
-        // Mock implementation - real implementation would validate JWT/session
-        if (context.userId() == null) {
-            return ValidationResult.INVALID_SESSION;
-        }
-        if (context.sessionId() == null || context.sessionId().isEmpty()) {
-            return ValidationResult.INVALID_SESSION;
-        }
-        return ValidationResult.VALID;
+        return Optional.ofNullable(context.userId())
+            .flatMap(userId -> Optional.ofNullable(context.sessionId())
+                .filter(sessionId -> !sessionId.isEmpty())
+                .map(sessionId -> ValidationResult.VALID))
+            .orElse(ValidationResult.INVALID_SESSION);
     }
     
     private enum ValidationResult {
