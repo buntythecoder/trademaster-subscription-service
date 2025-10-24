@@ -8,7 +8,7 @@ import com.trademaster.subscription.enums.SubscriptionTier;
 import com.trademaster.subscription.repository.SubscriptionRepository;
 import com.trademaster.subscription.service.SubscriptionLifecycleService;
 import com.trademaster.subscription.service.SubscriptionUpgradeService;
-import com.trademaster.subscription.service.UsageTrackingService;
+import com.trademaster.subscription.service.UsageTrackingBusinessLogic;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -86,7 +86,7 @@ class SubscriptionPerformanceBenchmarkTest {
     private SubscriptionUpgradeService upgradeService;
 
     @Autowired
-    private UsageTrackingService usageTrackingService;
+    private UsageTrackingBusinessLogic usageTrackingService;
 
     private final AtomicLong operationCounter = new AtomicLong(0);
     private final List<Long> responseTimes = Collections.synchronizedList(new ArrayList<>());
